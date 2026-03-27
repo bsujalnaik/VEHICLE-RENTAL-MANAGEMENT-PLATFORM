@@ -39,13 +39,14 @@ const AuthPage = ({ mode = 'login' }) => {
     try {
       let result;
       if (isLogin) {
-        // Send role during login so unknown emails get this role assigned
+        // Send selected role — backend will reject if account role doesn't match
         result = await api.login({ email: form.email, password: form.password, role: form.role });
       } else {
-        result = await api.register({ name: form.name, email: form.email, password: form.password, role: form.role });
+        // Registration always creates a customer account
+        result = await api.register({ name: form.name, email: form.email, password: form.password, role: 'customer' });
       }
       login(result.user);
-      addToast(`Welcome, ${result.user.name}! `, 'success');
+      addToast(`Welcome, ${result.user.name}!`, 'success');
       const dashMap = { admin: '/admin', fleet: '/fleet', customer: '/vehicles' };
       navigate(dashMap[result.user.role] || '/vehicles');
     } catch (err) {
@@ -84,7 +85,8 @@ const AuthPage = ({ mode = 'login' }) => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
-          {/* Role selection is now on for BOTH Login and Signup */}
+          {/* Role selection is only shown for Login — signup is always customer */}
+          {isLogin && (
           <div className="form-group mb-16">
             <label className="form-label">I am a...</label>
             <div className="role-selector">
@@ -106,6 +108,7 @@ const AuthPage = ({ mode = 'login' }) => {
               ))}
             </div>
           </div>
+          )}
 
           {!isLogin && (
             <div className="form-group">

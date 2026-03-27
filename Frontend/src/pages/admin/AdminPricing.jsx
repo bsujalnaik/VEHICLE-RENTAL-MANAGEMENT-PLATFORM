@@ -5,24 +5,41 @@ import Modal from '../../components/Modal';
 const AdminPricing = () => {
   const { pricingRules, addPricingRule, togglePricingRule, deletePricingRule, addToast } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', type: 'Multiplier', value: 1.5, isActive: true });
+  const [form, setForm] = useState({ name: '', type: 'seasonal', value: 1.5, isActive: true });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('Are you sure you want to delete this pricing rule?')) {
-      deletePricingRule(id);
-      addToast('Rule deleted', 'success');
+      try {
+        await deletePricingRule(id);
+        addToast('Rule deleted', 'success');
+      } catch (err) {
+        addToast(err.message || 'Failed to delete rule', 'error');
+      }
     }
   };
 
-  const handleCreate = () => {
+  const handleToggle = async (id) => {
+    try {
+      await togglePricingRule(id);
+      addToast('Rule toggled', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to toggle rule', 'error');
+    }
+  };
+
+  const handleCreate = async () => {
     if (!form.name || !form.value) {
       addToast('Please fill all fields', 'error');
       return;
     }
-    addPricingRule({ ...form, id: Date.now(), value: Number(form.value) });
-    addToast('New pricing rule saved successfully', 'success');
-    setIsModalOpen(false);
-    setForm({ name: '', type: 'Multiplier', value: 1.5, isActive: true });
+    try {
+      await addPricingRule({ ...form, value: Number(form.value) });
+      addToast('New pricing rule saved successfully', 'success');
+      setIsModalOpen(false);
+      setForm({ name: '', type: 'seasonal', value: 1.5, isActive: true });
+    } catch (err) {
+      addToast(err.message || 'Failed to create rule', 'error');
+    }
   };
 
   return (
@@ -47,7 +64,7 @@ const AdminPricing = () => {
               <tr>
                 <th>Rule Name</th>
                 <th>Rule Type</th>
-                <th>Value Effect</th>
+                <th>Multiplier</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -56,10 +73,8 @@ const AdminPricing = () => {
               {pricingRules.map(r => (
                 <tr key={r.id}>
                   <td className="font-semibold">{r.name}</td>
-                  <td className="text-gray-500">{r.type}</td>
-                  <td className={r.value > 0 && r.type !== 'Discount %' ? 'text-danger font-bold' : 'text-success font-bold'}>
-                    {r.type === 'Multiplier' ? `×${r.value}` : r.type === 'Flat' ? `₹${r.value}` : `-${r.value}%`}
-                  </td>
+                  <td className="text-gray-500" style={{ textTransform: 'capitalize' }}>{r.type}</td>
+                  <td className="font-bold">×{r.value || r.multiplier}</td>
                   <td>
                     <span className={`badge ${r.isActive ? 'badge-success' : 'badge-gray'}`}>
                       {r.isActive ? 'Active' : 'Disabled'}
@@ -69,7 +84,7 @@ const AdminPricing = () => {
                     <div className="actions">
                       <button 
                         className={`btn btn-sm ${r.isActive ? 'btn-ghost' : 'btn-success'}`}
-                        onClick={() => togglePricingRule(r.id)}
+                        onClick={() => handleToggle(r.id)}
                       >
                         {r.isActive ? 'Disable' : 'Enable'}
                       </button>
@@ -131,18 +146,18 @@ const AdminPricing = () => {
           <div className="form-group">
             <label className="form-label">Rule Type</label>
             <select className="form-control" value={form.type} onChange={e => setForm({...form, type: e.target.value})}>
-              <option value="Multiplier">Multiplier</option>
-              <option value="Flat">Flat Increase/Decrease</option>
-              <option value="Discount %">Discount %</option>
+              <option value="seasonal">Seasonal</option>
+              <option value="weekend">Weekend</option>
+              <option value="late">Late Fee</option>
             </select>
           </div>
           <div className="form-group">
-            <label className="form-label">Effect Value</label>
-            <input type="number" className="form-control" placeholder="e.g. 1.5, -20, 10" value={form.value} onChange={e => setForm({...form, value: e.target.value})} />
+            <label className="form-label">Multiplier Value</label>
+            <input type="number" step="0.05" className="form-control" placeholder="e.g. 1.5" value={form.value} onChange={e => setForm({...form, value: e.target.value})} />
           </div>
         </div>
         <p className="form-hint mb-24 text-gray-500">
-          * Use decimals for multipliers (e.g. 1.2), use native numbers directly for flat discounts (e.g. -20).
+          * Use decimals for multipliers (e.g. 1.2 = 20% more, 0.8 = 20% discount).
         </p>
         <div className="flex justify-end gap-8">
           <button className="btn btn-ghost" onClick={() => setIsModalOpen(false)}>Cancel</button>

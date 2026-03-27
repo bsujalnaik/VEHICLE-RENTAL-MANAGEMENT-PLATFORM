@@ -26,7 +26,7 @@ const BookingPage = () => {
     setLoading(true);
     const timeout = setTimeout(() => {
       const data = vehicles.find(x => x.id === parseInt(id) || String(x.id) === id);
-      if (!data || !data.available) {
+      if (!data || data.status !== 'available') {
         addToast(data ? 'Vehicle is not available' : 'Vehicle not found', 'error');
         navigate('/vehicles');
       } else {

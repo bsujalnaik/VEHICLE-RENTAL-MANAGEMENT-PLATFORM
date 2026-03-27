@@ -4,7 +4,6 @@ import StatusBadge from '../../components/StatusBadge';
 const FleetStatus = () => {
   const { vehicles: fleet } = useApp();
 
-
   return (
     <div className="fleet-status">
       <div className="page-header mb-24">
@@ -19,33 +18,20 @@ const FleetStatus = () => {
               <tr>
                 <th>Registration</th>
                 <th>Vehicle Model</th>
-                <th>Odometer Reading</th>
-                <th>Fuel/Battery Level</th>
+                <th>Fuel Type</th>
+                <th>Seats</th>
                 <th>Current Condition</th>
               </tr>
             </thead>
             <tbody>
               {fleet.map(v => (
                 <tr key={v.id}>
-                  <td className="font-mono text-gray-500 font-semibold">MH-02-{v.id.toString().padStart(4, '0')}</td>
-                  <td className="font-semibold">{v.brand} {v.name}</td>
-                  <td>{Math.floor(Math.random() * 50000 + 5000).toLocaleString()} km</td>
+                  <td className="font-mono text-gray-500 font-semibold">{v.registration}</td>
+                  <td className="font-semibold">{v.name}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{v.fuel}</td>
+                  <td>{v.seats}</td>
                   <td>
-                    <div className="flex items-center gap-8">
-                      <div className="progress-bar w-full" style={{ width: '60px', background: 'var(--gray-200)' }}>
-                        <div 
-                          className="progress-fill" 
-                          style={{ 
-                            width: `${Math.floor(Math.random() * 60 + 40)}%`, 
-                            background: v.fuel.toLowerCase() === 'electric' ? 'var(--info)' : 'var(--success)' 
-                          }} 
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500">{v.fuel === 'Electric' ? 'Charge' : 'Tank'}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <StatusBadge status={v.available ? 'Available' : 'Maintenance'} />
+                    <StatusBadge status={v.status === 'available' ? 'Available' : v.status === 'maintenance' ? 'Maintenance' : 'Unavailable'} />
                   </td>
                 </tr>
               ))}

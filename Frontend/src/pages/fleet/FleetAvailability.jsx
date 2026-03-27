@@ -5,11 +5,12 @@ const FleetAvailability = () => {
   const { vehicles: fleet, updateVehicle, addToast } = useApp();
 
   const toggleAvailability = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'available' ? 'unavailable' : 'available';
     try {
-      updateVehicle(id, { available: !currentStatus });
-      addToast(`Vehicle marked as ${!currentStatus ? 'available' : 'unavailable'}`, 'success');
-    } catch {
-      addToast('Failed to update status', 'error');
+      await updateVehicle(id, { status: newStatus });
+      addToast(`Vehicle marked as ${newStatus}`, 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to update status', 'error');
     }
   };
 
@@ -34,15 +35,15 @@ const FleetAvailability = () => {
             <tbody>
               {fleet.map(v => (
                 <tr key={v.id}>
-                  <td className="font-semibold">{v.brand} {v.name}</td>
+                  <td className="font-semibold">{v.name}</td>
                   <td style={{ textTransform: 'capitalize' }}>{v.type}</td>
-                  <td><StatusBadge status={v.available ? 'Available' : 'Unavailable'} /></td>
+                  <td><StatusBadge status={v.status === 'available' ? 'Available' : v.status === 'maintenance' ? 'Maintenance' : 'Unavailable'} /></td>
                   <td>
                     <button 
-                      className={`btn btn-sm ${v.available ? 'btn-danger' : 'btn-success'}`}
-                      onClick={() => toggleAvailability(v.id, v.available)}
+                      className={`btn btn-sm ${v.status === 'available' ? 'btn-danger' : 'btn-success'}`}
+                      onClick={() => toggleAvailability(v.id, v.status)}
                     >
-                      Set {v.available ? 'Unavailable' : 'Available'}
+                      Set {v.status === 'available' ? 'Unavailable' : 'Available'}
                     </button>
                   </td>
                 </tr>

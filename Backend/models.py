@@ -93,6 +93,8 @@ class Booking(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "vehicle_id": self.vehicle_id,
+            "vehicle_name": f"{self.vehicle.brand} {self.vehicle.model}" if self.vehicle else "Unknown Vehicle",
+            "vehicle_image": self.vehicle.photo_url if self.vehicle else "https://images.unsplash.com/photo-1549399542-7e3f8b79c341",
             "start_date": self.start_date.isoformat(),
             "end_date": self.end_date.isoformat(),
             "status": self.status,

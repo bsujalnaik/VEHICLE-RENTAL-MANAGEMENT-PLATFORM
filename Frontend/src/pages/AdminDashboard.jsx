@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import StatusBadge from '../components/StatusBadge';
 import { useApp } from '../context/AppContext';
+import { api } from '../services/api';
 import AdminVehicles from './admin/AdminVehicles';
 import AdminBookings from './admin/AdminBookings';
 import AdminPricing from './admin/AdminPricing';
@@ -10,14 +11,19 @@ import AdminUsers from './admin/AdminUsers';
 import './AdminDashboard.css';
 
 const AdminOverview = () => {
-  const { bookings, vehicles, pricingRules } = useApp();
+  const { bookings, vehicles } = useApp();
+  const [reports, setReports] = useState(null);
   
-  const stats = [
-    { label: 'Total Vehicles', value: vehicles.length, icon: <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=100&q=80" alt="V" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'blue' },
-    { label: 'Active Rentals', value: bookings.filter(b => b.status === 'Active').length, icon: <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=100&q=80" alt="A" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'green' },
-    { label: 'Total Revenue', value: `₹${bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0)}`, icon: <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=100&q=80" alt="R" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'amber' },
-    { label: 'Maintenance', value: vehicles.filter(v => !v.available).length, icon: <img src="https://images.unsplash.com/photo-1549416878-b9ca35c2d47b?w=100&q=80" alt="M" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'red' },
-  ];
+  useEffect(() => {
+    api.getAdminReports().then(setReports).catch(console.error);
+  }, []);
+
+  const stats = reports ? [
+    { label: 'Total Vehicles', value: reports.total_vehicles, icon: <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=100&q=80" alt="V" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'blue' },
+    { label: 'Active Rentals', value: reports.active_rentals, icon: <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=100&q=80" alt="A" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'green' },
+    { label: 'Total Revenue', value: `₹${reports.total_revenue}`, icon: <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=100&q=80" alt="R" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'amber' },
+    { label: 'Total Users', value: reports.total_users, icon: <img src="https://images.unsplash.com/photo-1549416878-b9ca35c2d47b?w=100&q=80" alt="M" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'red' },
+  ] : [];
 
   return (
     <>
@@ -58,15 +64,18 @@ const AdminOverview = () => {
                 </tr>
               </thead>
               <tbody>
-                {bookings.slice(0, 5).map(b => (
-                  <tr key={b.id}>
-                    <td className="font-semibold text-gray-500">{b.id}</td>
-                    <td>{b.vehicleName}</td>
-                    <td>{b.userId}</td>
-                    <td><StatusBadge status={b.status} /></td>
-                    <td className="font-bold">₹{b.totalPrice}</td>
-                  </tr>
-                ))}
+                {bookings.slice(0, 5).map(b => {
+                  const vehicle = vehicles.find(v => v.id === b.vehicleId);
+                  return (
+                    <tr key={b.id}>
+                      <td className="font-semibold text-gray-500">{b.id}</td>
+                      <td>{vehicle ? vehicle.name : `Vehicle #${b.vehicleId}`}</td>
+                      <td>User #{b.userId}</td>
+                      <td><StatusBadge status={b.status} /></td>
+                      <td className="font-bold">₹{b.totalPrice}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -79,8 +88,9 @@ const AdminOverview = () => {
           <div className="card-body">
             <div className="dist-list">
               {['Cars', 'Bikes', 'Vans'].map(type => {
-                const items = vehicles.filter(v => Array.isArray(type) ? type.includes(v.type) : v.type.toLowerCase() === type.substring(0, type.length-1).toLowerCase());
-                const available = items.filter(v => v.available).length;
+                const typeKey = type.substring(0, type.length-1).toLowerCase();
+                const items = vehicles.filter(v => v.type.toLowerCase() === typeKey);
+                const available = items.filter(v => v.status === 'available').length;
                 return (
                   <div key={type} className="dist-item mb-16">
                     <div className="flex-between mb-8">
@@ -90,7 +100,7 @@ const AdminOverview = () => {
                     <div className="progress-bar">
                       <div 
                         className="progress-fill" 
-                        style={{ width: `${(available / items.length) * 100}%`, background: 'var(--primary)' }} 
+                        style={{ width: items.length ? `${(available / items.length) * 100}%` : '0%', background: 'var(--primary)' }} 
                       />
                     </div>
                   </div>

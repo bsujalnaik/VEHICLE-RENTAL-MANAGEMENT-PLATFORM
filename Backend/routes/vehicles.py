@@ -1,17 +1,57 @@
 """
-Vehicle routes — CRUD + filtering.
+Vehicle routes — CRUD + filtering + image upload.
 """
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+import os
+import uuid
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
+from werkzeug.utils import secure_filename
 from extensions import db
 from models import Vehicle
 from middleware.auth import require_role
 
 vehicles_bp = Blueprint("vehicles", __name__, url_prefix="/vehicles")
 
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+# ── POST /vehicles/upload-image ──────────────
+@vehicles_bp.route("/upload-image", methods=["POST"])
+@jwt_required()
+@require_role("admin")
+def upload_image():
+    """Upload a vehicle image. Returns the URL."""
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({"error": "File type not allowed. Use png, jpg, jpeg, gif, or webp"}), 400
+
+    # Generate unique filename
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    unique_name = f"{uuid.uuid4().hex}.{ext}"
+
+    upload_folder = current_app.config.get("UPLOAD_FOLDER", "static/uploads")
+    os.makedirs(upload_folder, exist_ok=True)
+    filepath = os.path.join(upload_folder, unique_name)
+    file.save(filepath)
+
+    # Return URL relative to static serving
+    photo_url = f"/static/uploads/{unique_name}"
+    return jsonify({"photo_url": photo_url}), 200
+
 
 # ── GET /vehicles ─────────────────────────────
 @vehicles_bp.route("", methods=["GET"])
+@jwt_required(optional=True)
 def list_vehicles():
     """
     List vehicles with optional filters.
@@ -36,8 +76,20 @@ def list_vehicles():
     if max_price:
         query = query.filter(Vehicle.price_per_day <= max_price)
 
-    status = request.args.get("status", "available")
-    query = query.filter(Vehicle.status == status)
+    # Role-based status filtering
+    identity = get_jwt_identity()
+    role = "customer"
+    if identity:
+        claims = get_jwt()
+        role = claims.get("role", "customer")
+
+    status = request.args.get("status")
+    if role in ("admin", "fleet"):
+        if status:
+            query = query.filter(Vehicle.status == status)
+    else:
+        # Customers can ONLY see available vehicles
+        query = query.filter(Vehicle.status == "available")
 
     vehicles = query.all()
     return jsonify({"vehicles": [v.to_dict() for v in vehicles]}), 200

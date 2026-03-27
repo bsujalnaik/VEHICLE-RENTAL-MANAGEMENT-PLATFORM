@@ -19,10 +19,9 @@ apiClient.interceptors.request.use(config => {
 
 export const api = {
   // ── Auth ──────────────────────────────────────────
-  async login({ email, password }) {
+  async login({ email, password, role }) {
     try {
-      const response = await apiClient.post('/auth/login', { email, password });
-      // Save token to localStorage
+      const response = await apiClient.post('/auth/login', { email, password, role });
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       return { user: response.data.user, token: response.data.access_token };
@@ -54,8 +53,8 @@ export const api = {
       if (filters.type) params.type = filters.type;
       if (filters.fuel) params.fuel = filters.fuel.toLowerCase();
       if (filters.maxPrice) params.max_price = filters.maxPrice;
-      // Search is client-side filter or we send full if not supported on backend
-      
+      if (filters.status) params.status = filters.status;
+
       const response = await apiClient.get('/vehicles', { params });
       let vehicles = response.data.vehicles;
 
@@ -94,9 +93,86 @@ export const api = {
     }
   },
 
+  async createVehicle(data) {
+    try {
+      const payload = {
+        brand: data.brand,
+        model: data.model || data.name,
+        type: data.type,
+        fuel: data.fuel.toLowerCase(),
+        seats: Number(data.seats),
+        price_per_hour: Number(data.pricePerHour || data.price_per_hour || 10),
+        price_per_day: Number(data.pricePerDay || data.price_per_day),
+        registration: data.registration,
+        photo_url: data.image || data.photo_url || null,
+        status: data.status || 'available',
+      };
+      const response = await apiClient.post('/vehicles', payload);
+      const v = response.data.vehicle;
+      return {
+        ...v,
+        name: `${v.brand} ${v.model}`,
+        pricePerDay: v.price_per_day,
+        pricePerHour: v.price_per_hour,
+        image: v.photo_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=800',
+      };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to create vehicle');
+    }
+  },
+
+  async updateVehicle(id, data) {
+    try {
+      const payload = {};
+      if (data.brand !== undefined) payload.brand = data.brand;
+      if (data.model !== undefined) payload.model = data.model;
+      if (data.type !== undefined) payload.type = data.type;
+      if (data.fuel !== undefined) payload.fuel = data.fuel;
+      if (data.seats !== undefined) payload.seats = Number(data.seats);
+      if (data.pricePerHour !== undefined) payload.price_per_hour = Number(data.pricePerHour);
+      if (data.pricePerDay !== undefined) payload.price_per_day = Number(data.pricePerDay);
+      if (data.registration !== undefined) payload.registration = data.registration;
+      if (data.image !== undefined) payload.photo_url = data.image;
+      if (data.status !== undefined) payload.status = data.status;
+
+      const response = await apiClient.put(`/vehicles/${id}`, payload);
+      const v = response.data.vehicle;
+      return {
+        ...v,
+        name: `${v.brand} ${v.model}`,
+        pricePerDay: v.price_per_day,
+        pricePerHour: v.price_per_hour,
+        image: v.photo_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=800',
+      };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to update vehicle');
+    }
+  },
+
+  async deleteVehicle(id) {
+    try {
+      await apiClient.delete(`/vehicles/${id}`);
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to delete vehicle');
+    }
+  },
+
+  async uploadVehicleImage(file) {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await apiClient.post('/vehicles/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data.photo_url;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to upload image');
+    }
+  },
+
   // ── Bookings ──────────────────────────────────────
   async createBooking(data) {
-    // data has vehicleId, startDate, endDate
     try {
       const payload = {
         vehicle_id: data.vehicleId,
@@ -105,7 +181,22 @@ export const api = {
       };
       const response = await apiClient.post('/bookings', payload);
       const b = response.data.booking;
-      return { ...b, id: b.id, vehicleId: b.vehicle_id, status: b.status, totalPrice: b.total_cost, startDate: b.start_date, endDate: b.end_date };
+      let displayStatus = b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase();
+      if (b.status === 'PICKED_UP') displayStatus = 'Active';
+      if (b.status === 'RETURNED' || b.status === 'CLOSED') displayStatus = 'Completed';
+      
+      return {
+        ...b,
+        vehicleId: b.vehicle_id,
+        vehicleName: b.vehicle_name,
+        vehicleImage: b.vehicle_image,
+        userId: b.user_id,
+        totalPrice: b.total_cost,
+        startDate: b.start_date,
+        endDate: b.end_date,
+        createdAt: b.created_at,
+        status: displayStatus
+      };
     } catch (err) {
       throw new Error(err.response?.data?.error || 'Failed to create booking');
     }
@@ -114,18 +205,45 @@ export const api = {
   async getBookings() {
     try {
       const response = await apiClient.get('/bookings');
-      return response.data.bookings.map(b => ({
-        id: b.id,
-        vehicleId: b.vehicle_id,
-        status: b.status,
-        totalPrice: b.total_cost,
-        startDate: b.start_date,
-        endDate: b.end_date,
-        createdAt: b.created_at
-      }));
+      return response.data.bookings.map(b => {
+        let displayStatus = b.status.charAt(0).toUpperCase() + b.status.slice(1).toLowerCase();
+        if (b.status === 'PICKED_UP') displayStatus = 'Active';
+        if (b.status === 'RETURNED' || b.status === 'CLOSED') displayStatus = 'Completed';
+        
+        return {
+          ...b,
+          vehicleId: b.vehicle_id,
+          vehicleName: b.vehicle_name,
+          vehicleImage: b.vehicle_image,
+          userId: b.user_id,
+          totalPrice: b.total_cost,
+          startDate: b.start_date,
+          endDate: b.end_date,
+          createdAt: b.created_at,
+          status: displayStatus
+        };
+      });
     } catch (err) {
       console.error(err);
       return [];
+    }
+  },
+
+  async pickupBooking(id) {
+    try {
+      const response = await apiClient.patch(`/bookings/${id}/pickup`);
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to pickup booking');
+    }
+  },
+
+  async returnBooking(id) {
+    try {
+      const response = await apiClient.patch(`/bookings/${id}/return`);
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to return booking');
     }
   },
 
@@ -140,6 +258,112 @@ export const api = {
       return { success: true, transactionId: 'TXN_' + Date.now(), ...response.data.receipt };
     } catch (err) {
       throw new Error(err.response?.data?.error || 'Payment failed');
+    }
+  },
+
+  // ── Admin: Reports ────────────────────────────────
+  async getAdminReports() {
+    try {
+      const response = await apiClient.get('/admin/reports');
+      return response.data.reports;
+    } catch (err) {
+      console.error('Error fetching reports:', err);
+      return null;
+    }
+  },
+
+  // ── Admin: Users ──────────────────────────────────
+  async getUsers() {
+    try {
+      const response = await apiClient.get('/admin/users');
+      return response.data.users;
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      return [];
+    }
+  },
+
+  // ── Admin: Pricing Rules ──────────────────────────
+  async getPricingRules() {
+    try {
+      const response = await apiClient.get('/admin/pricing-rules');
+      return response.data.pricing_rules.map(r => ({
+        ...r,
+        isActive: r.active,
+        value: r.multiplier,
+      }));
+    } catch (err) {
+      console.error('Error fetching pricing rules:', err);
+      return [];
+    }
+  },
+
+  async createPricingRule(data) {
+    try {
+      const payload = {
+        name: data.name,
+        type: data.type.toLowerCase(),
+        multiplier: Number(data.value || data.multiplier),
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
+        active: data.isActive !== undefined ? data.isActive : true,
+      };
+      const response = await apiClient.post('/admin/pricing-rules', payload);
+      const r = response.data.rule;
+      return { ...r, isActive: r.active, value: r.multiplier };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to create pricing rule');
+    }
+  },
+
+  async updatePricingRule(id, data) {
+    try {
+      const payload = {};
+      if (data.active !== undefined) payload.active = data.active;
+      if (data.isActive !== undefined) payload.active = data.isActive;
+      if (data.name !== undefined) payload.name = data.name;
+      if (data.multiplier !== undefined) payload.multiplier = data.multiplier;
+      const response = await apiClient.put(`/admin/pricing-rules/${id}`, payload);
+      const r = response.data.rule;
+      return { ...r, isActive: r.active, value: r.multiplier };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to update pricing rule');
+    }
+  },
+
+  // ── Maintenance ───────────────────────────────────
+  async getMaintenanceLogs() {
+    try {
+      const response = await apiClient.get('/maintenance');
+      return response.data.maintenance_logs;
+    } catch (err) {
+      console.error('Error fetching maintenance logs:', err);
+      return [];
+    }
+  },
+
+  async createMaintenanceLog(data) {
+    try {
+      const payload = {
+        vehicle_id: Number(data.vehicleId || data.vehicle_id),
+        type: data.type,
+        description: data.description || data.notes || '',
+        cost: Number(data.cost || 0),
+        next_due: data.next_due || null,
+      };
+      const response = await apiClient.post('/maintenance', payload);
+      return response.data.log;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to create maintenance log');
+    }
+  },
+
+  async completeMaintenanceLog(id) {
+    try {
+      const response = await apiClient.patch(`/maintenance/${id}/complete`);
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to complete maintenance');
     }
   },
 };

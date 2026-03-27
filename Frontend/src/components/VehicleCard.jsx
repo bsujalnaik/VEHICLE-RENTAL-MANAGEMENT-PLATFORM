@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import './VehicleCard.css';
 
 const VehicleCard = ({ vehicle }) => {
-  const { id, name, image, pricePerDay, fuel, seats, type, available, rating, reviews, transmission } = vehicle;
+  const { id, name, image, pricePerDay, fuel, seats, type, status, rating, reviews, transmission } = vehicle;
+  const available = status === 'available';
 
   const typeEmoji = { car: '', bike: '️', van: '' };
 
@@ -16,8 +17,8 @@ const VehicleCard = ({ vehicle }) => {
           className="vehicle-card-image"
           onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=400&q=80'; }}
         />
-        <div className={`availability-chip ${available ? 'avail' : 'unavail'}`}>
-          {available ? ' Available' : ' Unavailable'}
+        <div className={`availability-chip ${status === 'available' ? 'avail' : 'unavail'}`}>
+          {status === 'available' ? ' Available' : ' Unavailable'}
         </div>
         <div className="type-chip">{typeEmoji[type] || ''} {type}</div>
       </div>

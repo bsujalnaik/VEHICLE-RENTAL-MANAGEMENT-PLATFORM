@@ -104,6 +104,19 @@ def create_coupon():
 
 
 # ────────────────────────────────────────────────
+#  Users
+# ────────────────────────────────────────────────
+
+@admin_bp.route("/users", methods=["GET"])
+@jwt_required()
+@require_role("admin")
+def list_users():
+    """List all registered users."""
+    users = User.query.order_by(User.created_at.desc()).all()
+    return jsonify({"users": [u.to_dict() for u in users]}), 200
+
+
+# ────────────────────────────────────────────────
 #  Reports
 # ────────────────────────────────────────────────
 

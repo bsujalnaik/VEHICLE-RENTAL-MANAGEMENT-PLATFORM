@@ -12,17 +12,18 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 # ── POST /auth/register ──────────────────────
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    """Register a new user. Body: name, email, password, role."""
+    """Register a new CUSTOMER user. Body: name, email, password."""
     data = request.get_json()
 
     # Validation
-    required = ["name", "email", "password", "role"]
+    required = ["name", "email", "password"]
     for field in required:
         if field not in data or not data[field]:
             return jsonify({"error": f"'{field}' is required"}), 400
 
-    if data["role"] not in ("customer", "admin", "fleet"):
-        return jsonify({"error": "Role must be 'customer', 'admin', or 'fleet'"}), 400
+    # Public registration is only for customers
+    # Admin and Fleet accounts are pre-created by the system
+    role = "customer"
 
     if User.query.filter_by(email=data["email"]).first():
         return jsonify({"error": "Email already registered"}), 409
@@ -33,7 +34,7 @@ def register():
         name=data["name"],
         email=data["email"],
         password_hash=pw_hash,
-        role=data["role"],
+        role=role,
     )
     db.session.add(user)
     db.session.commit()
@@ -54,15 +55,29 @@ def register():
 # ── POST /auth/login ─────────────────────────
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    """Login with email & password. Returns JWT."""
+    """
+    Login with email, password, and selected role.
+    The selected role must match the user's actual database role.
+    This prevents customers from accessing admin/fleet dashboards.
+    """
     data = request.get_json()
 
     if not data or not data.get("email") or not data.get("password"):
         return jsonify({"error": "Email and password are required"}), 400
 
+    selected_role = data.get("role", "customer")
+
     user = User.query.filter_by(email=data["email"]).first()
     if not user or not bcrypt.check_password_hash(user.password_hash, data["password"]):
         return jsonify({"error": "Invalid email or password"}), 401
+
+    # Enforce role match — customers cannot log into admin/fleet panels
+    if selected_role != user.role:
+        role_labels = {"admin": "Admin", "fleet": "Fleet Manager", "customer": "Customer"}
+        return jsonify({
+            "error": f"Access denied. This account is registered as '{role_labels.get(user.role, user.role)}'. "
+                     f"Please select the correct role to continue."
+        }), 403
 
     token = create_access_token(
         identity=str(user.id),

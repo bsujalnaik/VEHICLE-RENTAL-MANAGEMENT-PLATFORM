@@ -31,7 +31,7 @@ const VehicleListPage = () => {
         filtered = filtered.filter(v => v.pricePerDay <= filters.maxPrice);
       }
       if (filters.availableOnly) {
-        filtered = filtered.filter(v => v.available);
+        filtered = filtered.filter(v => v.status === 'available');
       }
       
       setVehicles(filtered);

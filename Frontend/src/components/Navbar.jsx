@@ -16,7 +16,9 @@ const Navbar = () => {
     setDropdownOpen(false);
   };
 
-  const navLinks = [
+  // Only show Browse Vehicles and My Rentals for customers (not for admin/fleet)
+  const isAdminOrFleet = user && (user.role === 'admin' || user.role === 'fleet');
+  const navLinks = isAdminOrFleet ? [] : [
     { to: '/vehicles', label: 'Browse Vehicles', icon: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=100&q=80' },
     { to: '/rentals', label: 'My Rentals', icon: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=100&q=80', requireAuth: true },
   ];
@@ -90,9 +92,11 @@ const Navbar = () => {
                     </div>
                   </div>
                   <div className="dropdown-divider" />
+                  {!isAdminOrFleet && (
                   <Link to="/rentals" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                      My Rentals
                   </Link>
+                  )}
                   {dashLink && (
                     <Link to={dashLink.to} className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                        {dashLink.label}

@@ -4,6 +4,8 @@ import StatusBadge from '../../components/StatusBadge';
 const FleetOverview = () => {
   const { vehicles: fleet, maintenanceLogs } = useApp();
 
+  const availableCount = fleet.filter(v => v.status === 'available').length;
+  const pendingMaintenance = maintenanceLogs.filter(l => l.status === 'Pending').length;
 
   return (
     <div className="fleet-overview">
@@ -27,7 +29,7 @@ const FleetOverview = () => {
             <img src="https://images.unsplash.com/photo-1549416878-b9ca35c2d47b?w=100&q=80" alt="Available" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />
           </div>
           <div className="stat-info">
-            <div className="stat-value">{fleet.filter(v => v.available).length}</div>
+            <div className="stat-value">{availableCount}</div>
             <div className="stat-label">Available Now</div>
           </div>
         </div>
@@ -36,7 +38,7 @@ const FleetOverview = () => {
             <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=100&q=80" alt="Logs" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />
           </div>
           <div className="stat-info">
-            <div className="stat-value">{maintenanceLogs.filter(l => l.status === 'Pending').length}</div>
+            <div className="stat-value">{pendingMaintenance}</div>
             <div className="stat-label">Maintenance Pending</div>
           </div>
         </div>
@@ -53,20 +55,28 @@ const FleetOverview = () => {
                 <th>Vehicle</th>
                 <th>Service Type</th>
                 <th>Date</th>
-                <th>Technician</th>
+                <th>Description</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {maintenanceLogs.map(log => (
-                <tr key={log.id}>
-                  <td className="font-semibold">{log.vehicleName}</td>
-                  <td>{log.type}</td>
-                  <td className="text-gray-500">{new Date(log.date).toLocaleDateString()}</td>
-                  <td>{log.technician}</td>
-                  <td><StatusBadge status={log.status} /></td>
+              {maintenanceLogs.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="text-center p-24 text-gray-400">No maintenance logs found.</td>
                 </tr>
-              ))}
+              ) : (
+                maintenanceLogs.map(log => {
+                  return (
+                    <tr key={log.id}>
+                      <td className="font-semibold">Vehicle #{log.vehicle_id || log.vehicleId}</td>
+                      <td>{log.type}</td>
+                      <td className="text-gray-500">{new Date(log.date).toLocaleDateString()}</td>
+                      <td className="text-sm text-gray-500">{log.description || log.notes || '—'}</td>
+                      <td><StatusBadge status={log.status} /></td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

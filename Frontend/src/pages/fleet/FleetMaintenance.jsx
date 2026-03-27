@@ -9,32 +9,35 @@ const FleetMaintenance = () => {
   
   const [form, setForm] = useState({ vehicleId: '', type: '', notes: '' });
 
-  const handleResolve = (id) => {
-    updateMaintenanceLog(id, { status: 'Completed' });
-    addToast('Maintenance task marked as completed', 'success');
+  const handleResolve = async (id) => {
+    try {
+      await updateMaintenanceLog(id, { status: 'Completed' });
+      addToast('Maintenance task marked as completed', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to complete maintenance', 'error');
+    }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!form.vehicleId || !form.type) {
       addToast('Please select a vehicle and service type', 'error');
       return;
     }
     
-    const v = vehicles.find(x => x.id === Number(form.vehicleId));
-    
-    addMaintenanceLog({
-      vehicleId: v.id,
-      vehicleName: `${v.brand} ${v.name}`,
-      type: form.type,
-      notes: form.notes,
-      date: new Date().toISOString(),
-      technician: 'Fleet Admin',
-      status: 'Pending'
-    });
-    
-    addToast('Maintenance task logged successfully', 'success');
-    setIsModalOpen(false);
-    setForm({ vehicleId: '', type: '', notes: '' });
+    try {
+      await addMaintenanceLog({
+        vehicleId: Number(form.vehicleId),
+        type: form.type,
+        notes: form.notes,
+        description: form.notes,
+      });
+      
+      addToast('Maintenance task logged successfully', 'success');
+      setIsModalOpen(false);
+      setForm({ vehicleId: '', type: '', notes: '' });
+    } catch (err) {
+      addToast(err.message || 'Failed to log maintenance', 'error');
+    }
   };
 
   return (
@@ -66,11 +69,11 @@ const FleetMaintenance = () => {
             <tbody>
               {maintenanceLogs.map(log => (
                 <tr key={log.id}>
-                  <td className="font-mono text-gray-500">MNT-10{log.id}</td>
-                  <td className="font-semibold">{log.vehicleName}</td>
+                  <td className="font-mono text-gray-500">MNT-{String(log.id).padStart(4, '0')}</td>
+                  <td className="font-semibold">Vehicle #{log.vehicle_id || log.vehicleId}</td>
                   <td>{log.type}</td>
                   <td>{new Date(log.date).toLocaleDateString()}</td>
-                  <td className="text-sm text-gray-500 max-w-[200px] truncate">{log.notes}</td>
+                  <td className="text-sm text-gray-500" style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.description || log.notes || '—'}</td>
                   <td><StatusBadge status={log.status} /></td>
                   <td>
                     {log.status === 'Pending' ? (
@@ -97,7 +100,7 @@ const FleetMaintenance = () => {
           <select className="form-control" value={form.vehicleId} onChange={e => setForm({...form, vehicleId: e.target.value})}>
             <option value="">-- Choose a vehicle --</option>
             {vehicles.map(v => (
-              <option key={v.id} value={v.id}>{v.brand} {v.name}</option>
+              <option key={v.id} value={v.id}>{v.name}</option>
             ))}
           </select>
         </div>

@@ -39,10 +39,19 @@ def list_bookings():
 @bookings_bp.route("/<int:booking_id>", methods=["GET"])
 @jwt_required()
 def get_booking(booking_id):
-    """Get a single booking."""
+    """Get a single booking. Validates ownership for customers."""
+    from flask_jwt_extended import get_jwt
+    claims = get_jwt()
+    role = claims.get("role", "customer")
+    user_id = int(get_jwt_identity())
+
     booking = Booking.query.get(booking_id)
     if not booking:
         return jsonify({"error": "Booking not found"}), 404
+        
+    if role == "customer" and booking.user_id != user_id:
+        return jsonify({"error": "Forbidden: You do not own this booking"}), 403
+
     return jsonify({"booking": booking.to_dict()}), 200
 
 
@@ -96,6 +105,7 @@ def create_booking():
         total_cost=total_cost,
         status="BOOKED",
     )
+    vehicle.status = "booked"
     db.session.add(booking)
     db.session.commit()
 
@@ -174,11 +184,12 @@ def return_booking(booking_id):
 @require_role("customer")
 def extend_booking(booking_id):
     """
-    Customer extends a booking's end date.
+    Customer extends their own booking's end date.
     Body: new_end_date (ISO-8601)
     Recalculates the total cost for the extended duration.
     """
     from datetime import datetime
+    user_id = int(get_jwt_identity())
 
     data = request.get_json()
     if not data or not data.get("new_end_date"):
@@ -187,6 +198,9 @@ def extend_booking(booking_id):
     booking = Booking.query.get(booking_id)
     if not booking:
         return jsonify({"error": "Booking not found"}), 404
+        
+    if booking.user_id != user_id:
+        return jsonify({"error": "Forbidden: You do not own this booking"}), 403
 
     # Only allow extending active bookings
     if booking.status not in ("BOOKED", "PAID", "PICKED_UP"):

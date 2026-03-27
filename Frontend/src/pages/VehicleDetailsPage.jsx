@@ -67,7 +67,7 @@ const VehicleDetailsPage = () => {
           <div className="vdp-gallery">
             <div className="vdp-img-main">
               <img src={images[selectedImage]} alt={vehicle.name} />
-              {!vehicle.available && <div className="vdp-unavailable-badge">Currently Unavailable</div>}
+              {vehicle.status !== 'available' && <div className="vdp-unavailable-badge">Currently Unavailable</div>}
             </div>
             <div className="vdp-img-thumbs">
               {images.map((img, idx) => (
@@ -111,20 +111,20 @@ const VehicleDetailsPage = () => {
               </div>
               <div className="vdp-spec-box">
                 <img src="https://images.unsplash.com/photo-1562141989-c5c79ac8f576?w=100&q=80" alt="Transmission" style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }} />
-                <div className="vs-val">{vehicle.transmission}</div>
+                <div className="vs-val">{vehicle.transmission || 'Automatic'}</div>
                 <div className="vs-lbl">Transmission</div>
               </div>
               <div className="vdp-spec-box">
-                <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=100&q=80" alt="Mileage" style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }} />
-                <div className="vs-val">{vehicle.mileage}</div>
-                <div className="vs-lbl">Mileage</div>
+                <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=100&q=80" alt="Type" style={{ width: '24px', height: '24px', objectFit: 'cover', borderRadius: '4px', marginBottom: '8px' }} />
+                <div className="vs-val" style={{ textTransform: 'capitalize' }}>{vehicle.type}</div>
+                <div className="vs-lbl">Type</div>
               </div>
             </div>
 
             <div className="vdp-features">
               <h3>Key Features</h3>
               <ul className="vdp-feature-list">
-                {vehicle.features.map((f, i) => (
+                {(vehicle.features || ['Air Conditioning', 'GPS Navigation', 'Bluetooth Audio', 'USB Charging']).map((f, i) => (
                   <li key={i}><span className="check" style={{ color: 'var(--primary)' }}>•</span> {f}</li>
                 ))}
               </ul>
@@ -141,13 +141,13 @@ const VehicleDetailsPage = () => {
               <button
                 className="btn btn-primary btn-lg btn-full"
                 onClick={() => navigate(`/book/${vehicle.id}`)}
-                disabled={!vehicle.available}
+                disabled={vehicle.status !== 'available'}
               >
-                {vehicle.available ? 'Continue to Booking' : 'Not Available Right Now'}
+                {vehicle.status === 'available' ? 'Continue to Booking' : 'Not Available Right Now'}
               </button>
-              {!vehicle.available && (
+              {vehicle.status !== 'available' && (
                 <p className="vdp-hint text-center mt-8 text-danger">
-                  This vehicle is currently booked or under maintenance.
+                  This vehicle is currently unavailable.
                 </p>
               )}
             </div>
