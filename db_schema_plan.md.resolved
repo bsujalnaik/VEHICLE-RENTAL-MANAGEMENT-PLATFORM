@@ -1,0 +1,208 @@
+# Vehicle Rental Management Platform — MVP Database Plan
+
+## Overview
+
+7 tables total. Single `users` table with a `role` column handles all three roles. Fleet managers get access to rental/customer data via `fleet_vehicle_assignments` + read access to `rental_records`.
+
+---
+
+## Tables & Columns
+
+---
+
+### 1. `users`
+> Covers Admin, Customer, Fleet Manager via `role` column
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `user_id` | INTEGER | PK, AUTO | |
+| `name` | TEXT | NOT NULL | |
+| `email` | TEXT | UNIQUE, NOT NULL | |
+| `password_hash` | TEXT | NOT NULL | bcrypt hashed |
+| `phone` | TEXT | | |
+| `role` | TEXT | CHECK IN ('admin','customer','fleet_manager') | controls dashboard routing |
+| `driving_license_number` | TEXT | UNIQUE, nullable | customers only |
+| `is_active` | BOOLEAN | DEFAULT 1 | admin can deactivate |
+| `created_at` | DATETIME | DEFAULT NOW | |
+
+**CRUD by Role:**
+- **Admin:** Create any user, Read all users, Update role/status, Delete user
+- **Customer:** Read own profile, Update own profile
+- **Fleet Manager:** Read own profile, Update own profile
+
+---
+
+### 2. `vehicles`
+> Managed fully by Admin
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `vehicle_id` | INTEGER | PK, AUTO | |
+| `type` | TEXT | CHECK IN ('car','bike','van') | |
+| `brand` | TEXT | NOT NULL | |
+| `model` | TEXT | NOT NULL | |
+| `fuel_type` | TEXT | CHECK IN ('petrol','diesel','electric','cng') | |
+| `seating_capacity` | INTEGER | | |
+| `price_per_hour` | REAL | NOT NULL | |
+| `price_per_day` | REAL | NOT NULL | |
+| `availability_status` | TEXT | CHECK IN ('available','rented','maintenance') | |
+| `registration_number` | TEXT | UNIQUE, NOT NULL | |
+| `fitness_expiry` | DATE | | |
+| `insurance_expiry` | DATE | | |
+| `photo_path` | TEXT | | static file path |
+| `created_at` | DATETIME | DEFAULT NOW | |
+
+**CRUD by Role:**
+- **Admin:** Full CRUD
+- **Fleet Manager:** Update `availability_status` only
+- **Customer:** Read only (browse + filter)
+
+---
+
+### 3. `rental_records`
+> Core booking table — links customers ↔ vehicles ↔ pricing
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `rental_id` | INTEGER | PK, AUTO | |
+| `customer_id` | INTEGER | FK → users(user_id) | role must be 'customer' |
+| `vehicle_id` | INTEGER | FK → vehicles(vehicle_id) | |
+| `pricing_rule_id` | INTEGER | FK → pricing_rules(rule_id), nullable | applied rule if any |
+| `start_datetime` | DATETIME | NOT NULL | |
+| `end_datetime` | DATETIME | NOT NULL | expected return |
+| `actual_return_datetime` | DATETIME | nullable | set on actual return |
+| `total_cost` | REAL | | calculated at booking |
+| `payment_mode` | TEXT | CHECK IN ('cash','card','upi') | |
+| `payment_status` | TEXT | CHECK IN ('pending','paid','refunded') | |
+| `rental_status` | TEXT | CHECK IN ('booked','picked_up','returned','cancelled') | |
+| `created_at` | DATETIME | DEFAULT NOW | |
+
+**CRUD by Role:**
+- **Customer:** Create (book), Read own records, Update (cancel before pickup)
+- **Admin:** Read all, Update status/payment, Delete
+- **Fleet Manager:** Read (vehicles they manage — via fleet_vehicle_assignments)
+
+---
+
+### 4. `pricing_rules`
+> Set by Admin, applied during booking cost calculation
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `rule_id` | INTEGER | PK, AUTO | |
+| `rule_name` | TEXT | NOT NULL | e.g., "Weekend Surge" |
+| `rule_type` | TEXT | CHECK IN ('seasonal','weekend','late_fee','coupon') | |
+| `multiplier` | REAL | DEFAULT 1.0 | e.g., 1.5 = 50% extra |
+| `flat_fee` | REAL | DEFAULT 0 | e.g., late return flat charge |
+| `discount_code` | TEXT | UNIQUE, nullable | for coupon type |
+| `discount_percent` | REAL | nullable | e.g., 10 = 10% off |
+| `valid_from` | DATE | | |
+| `valid_to` | DATE | | |
+| `is_active` | BOOLEAN | DEFAULT 1 | |
+
+**CRUD by Role:**
+- **Admin:** Full CRUD
+- **Customer:** Read active rules (to see discounts)
+
+---
+
+### 5. `maintenance_logs`
+> Logged by Fleet Manager for vehicles they manage
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `log_id` | INTEGER | PK, AUTO | |
+| `vehicle_id` | INTEGER | FK → vehicles(vehicle_id) | |
+| `fleet_manager_id` | INTEGER | FK → users(user_id) | role must be 'fleet_manager' |
+| `maintenance_type` | TEXT | CHECK IN ('routine','repair','inspection','cleaning') | |
+| `description` | TEXT | | |
+| `cost` | REAL | | |
+| `maintenance_date` | DATE | NOT NULL | |
+| `next_due_date` | DATE | | |
+
+**CRUD by Role:**
+- **Fleet Manager:** Full CRUD on logs for their assigned vehicles
+- **Admin:** Read all, Delete
+
+---
+
+### 6. `fleet_vehicle_assignments`
+> Links which fleet manager manages which vehicle. Also allows fleet managers to view related customer rental data.
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `assignment_id` | INTEGER | PK, AUTO | |
+| `fleet_manager_id` | INTEGER | FK → users(user_id) | |
+| `vehicle_id` | INTEGER | FK → vehicles(vehicle_id) | |
+| `assigned_date` | DATE | DEFAULT NOW | |
+| `is_active` | BOOLEAN | DEFAULT 1 | |
+
+**Purpose:**
+- Admin assigns vehicles to fleet managers
+- Fleet manager can only view/update **their assigned vehicles**
+- Fleet manager can see `rental_records` WHERE `vehicle_id` IN their assignments → **this is how they see customer booking info from their dashboard**
+
+**CRUD by Role:**
+- **Admin:** Full CRUD (assign/unassign)
+- **Fleet Manager:** Read only
+
+---
+
+### 7. `notifications` *(lightweight, recommended)*
+> Keeps all roles informed of important events
+
+| Column | Type | Constraints | Notes |
+|---|---|---|---|
+| `notification_id` | INTEGER | PK, AUTO | |
+| `user_id` | INTEGER | FK → users(user_id) | recipient |
+| `message` | TEXT | NOT NULL | |
+| `is_read` | BOOLEAN | DEFAULT 0 | |
+| `created_at` | DATETIME | DEFAULT NOW | |
+
+**Examples:**
+- Customer: "Your booking is confirmed"
+- Fleet Manager: "Vehicle V-102 is due for maintenance"
+- Admin: "New booking created by customer John"
+
+---
+
+## Relationships (ER Summary)
+
+```mermaid
+erDiagram
+    users ||--o{ rental_records : "books (customer)"
+    users ||--o{ maintenance_logs : "logs (fleet_manager)"
+    users ||--o{ fleet_vehicle_assignments : "assigned to"
+    users ||--o{ notifications : "receives"
+    vehicles ||--o{ rental_records : "is rented in"
+    vehicles ||--o{ maintenance_logs : "has"
+    vehicles ||--o{ fleet_vehicle_assignments : "managed by"
+    pricing_rules ||--o{ rental_records : "applied to"
+```
+
+---
+
+## Dashboard Access Summary
+
+| What | Admin | Customer | Fleet Manager |
+|---|---|---|---|
+| All users | ✅ CRUD | ❌ | ❌ |
+| Own profile | ✅ | ✅ | ✅ |
+| All vehicles | ✅ CRUD | ✅ Read | ✅ Read (assigned only) |
+| Vehicle availability | ✅ | ❌ | ✅ Update (assigned only) |
+| All rental records | ✅ | ❌ | ✅ Read (their vehicles) |
+| Own rental records | ✅ | ✅ | — |
+| Pricing rules | ✅ CRUD | ✅ Read | ❌ |
+| Maintenance logs | ✅ Read | ❌ | ✅ CRUD (their vehicles) |
+| Fleet assignments | ✅ CRUD | ❌ | ✅ Read |
+| Notifications | ✅ | ✅ | ✅ |
+
+---
+
+## Implementation Order
+
+1. `users` → `vehicles` → `pricing_rules`
+2. `rental_records` (depends on users, vehicles, pricing_rules)
+3. `fleet_vehicle_assignments` (depends on users, vehicles)
+4. `maintenance_logs` (depends on users, vehicles)
+5. `notifications` (depends on users)
