@@ -78,9 +78,21 @@
 | `created_at` | DATETIME | DEFAULT NOW | |
 
 **CRUD by Role:**
-- **Customer:** Create (book), Read own records, Update (cancel before pickup)
+- **Customer:** Create (book), Read own records, Update (cancel before pickup only)
 - **Admin:** Read all, Update status/payment, Delete
-- **Fleet Manager:** Read (vehicles they manage — via fleet_vehicle_assignments)
+- **Fleet Manager:** Read (their assigned vehicles) + **Update** `rental_status` & `actual_return_datetime` for pickup & return confirmation
+
+**Rental Status Lifecycle:**
+```
+booked → picked_up → returned
+       ↘ cancelled   (customer cancels before pickup)
+```
+| Event | Triggered By | rental_status | vehicle availability_status |
+|---|---|---|---|
+| Customer books | Customer | `booked` | stays `available` |
+| Customer picks up | Fleet Manager confirms | `picked_up` | → `rented` |
+| Customer returns | Fleet Manager confirms | `returned` | → `available` |
+| Customer cancels | Customer | `cancelled` | stays `available` |
 
 ---
 
@@ -192,6 +204,7 @@ erDiagram
 | Vehicle availability | ✅ | ❌ | ✅ Update (assigned only) |
 | All rental records | ✅ | ❌ | ✅ Read (their vehicles) |
 | Own rental records | ✅ | ✅ | — |
+| Rental status (pickup/return) | ✅ | ❌ | ✅ Update (their vehicles only) |
 | Pricing rules | ✅ CRUD | ✅ Read | ❌ |
 | Maintenance logs | ✅ Read | ❌ | ✅ CRUD (their vehicles) |
 | Fleet assignments | ✅ CRUD | ❌ | ✅ Read |
