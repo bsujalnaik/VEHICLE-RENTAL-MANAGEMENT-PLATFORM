@@ -37,8 +37,15 @@ const PaymentPage = () => {
 
     setLoading(true);
     try {
-      const pmf = await api.processPayment({ bookingId: 'TEMP', method, amount: booking.totalPrice });
-      const completedBooking = await api.createBooking({ ...booking, transactionId: pmf.transactionId });
+      // 1. Create booking in Backend
+      const completedBooking = await api.createBooking({ 
+        vehicleId: booking.vehicleId, 
+        startDate: booking.startDate, 
+        endDate: booking.endDate 
+      });
+      
+      // 2. Process payment with real booking ID
+      await api.processPayment({ bookingId: completedBooking.id, method, amount: booking.totalPrice });
       
       addBooking(completedBooking);
       sessionStorage.removeItem('pendingBooking');

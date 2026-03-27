@@ -1,10 +1,13 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import { vehicles as initialVehicles, maintenanceLogs as initialLogs } from '../data/mockData';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { api } from '../services/api';
 
 const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [toasts, setToasts] = useState([]);
   
   // Global State for Mock Data
@@ -12,6 +15,14 @@ export const AppProvider = ({ children }) => {
   const [maintenanceLogs, setMaintenanceLogs] = useState([]);
   const [pricingRules, setPricingRules] = useState([]);
   const [bookings, setBookings] = useState([]);
+
+  // Fetch initial data from Backend API
+  useEffect(() => {
+    api.getVehicles().then(setVehicles).catch(console.error);
+    if (user) {
+      api.getBookings().then(setBookings).catch(console.error);
+    }
+  }, [user]);
 
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now();
@@ -24,7 +35,11 @@ export const AppProvider = ({ children }) => {
   }, []);
 
   const login = useCallback((userData) => { setUser(userData); }, []);
-  const logout = useCallback(() => { setUser(null); }, []);
+  const logout = useCallback(() => { 
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null); 
+  }, []);
 
   // Bookings
   const addBooking = useCallback((booking) => {

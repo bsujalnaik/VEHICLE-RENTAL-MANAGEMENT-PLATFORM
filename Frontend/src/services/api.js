@@ -1,70 +1,145 @@
-import { vehicles } from '../data/mockData';
+import axios from 'axios';
 
-// Simulate network delay
-const delay = (ms = 400) => new Promise(res => setTimeout(res, ms));
+// Create an Axios instance pointing to the Flask backend
+const apiClient = axios.create({
+  baseURL: 'http://localhost:5000',
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Automatically attach JWT token if it exists
+apiClient.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, error => Promise.reject(error));
 
 export const api = {
-  // Auth
-  async login({ email, password, role }) {
-    await delay();
-    if (!email || !password) throw new Error('Invalid credentials');
-    const users = {
-      'admin@vrmp.com':   { id: 'u1', name: 'Admin User',   email, role: 'admin' },
-      'fleet@vrmp.com':   { id: 'u2', name: 'Fleet Manager',email, role: 'fleet' },
-      'customer@vrmp.com':{ id: 'u3', name: 'Jane Customer',email, role: 'customer' },
-    };
-    const user = users[email] || { id: 'u99', name: email.split('@')[0], email, role: role || 'customer' };
-    return { user, token: 'mock-jwt-token' };
+  // ── Auth ──────────────────────────────────────────
+  async login({ email, password }) {
+    try {
+      const response = await apiClient.post('/auth/login', { email, password });
+      // Save token to localStorage
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      return { user: response.data.user, token: response.data.access_token };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Login failed');
+    }
   },
 
   async register({ name, email, password, role }) {
-    await delay();
-    if (!name || !email || !password) throw new Error('All fields required');
-    return { user: { id: 'u' + Date.now(), name, email, role: role || 'customer' }, token: 'mock-jwt-token' };
+    try {
+      const response = await apiClient.post('/auth/register', { name, email, password, role });
+      localStorage.setItem('token', response.data.access_token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      return { user: response.data.user, token: response.data.access_token };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Registration failed');
+    }
   },
 
-  // Vehicles
+  logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  },
+
+  // ── Vehicles ──────────────────────────────────────
   async getVehicles(filters = {}) {
-    await delay();
-    let data = [...vehicles];
-    if (filters.type)   data = data.filter(v => v.type === filters.type);
-    if (filters.fuel)   data = data.filter(v => v.fuel.toLowerCase() === filters.fuel.toLowerCase());
-    if (filters.maxPrice) data = data.filter(v => v.pricePerDay <= filters.maxPrice);
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      data = data.filter(v => v.name.toLowerCase().includes(q) || v.brand.toLowerCase().includes(q));
+    try {
+      const params = {};
+      if (filters.type) params.type = filters.type;
+      if (filters.fuel) params.fuel = filters.fuel.toLowerCase();
+      if (filters.maxPrice) params.max_price = filters.maxPrice;
+      // Search is client-side filter or we send full if not supported on backend
+      
+      const response = await apiClient.get('/vehicles', { params });
+      let vehicles = response.data.vehicles;
+
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        vehicles = vehicles.filter(v => v.model.toLowerCase().includes(q) || v.brand.toLowerCase().includes(q));
+      }
+      return vehicles.map(v => ({
+        ...v,
+        name: `${v.brand} ${v.model}`,
+        pricePerDay: v.price_per_day,
+        pricePerHour: v.price_per_hour,
+        image: v.photo_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=800',
+        rating: 4.8,
+        reviews: 120
+      }));
+    } catch (err) {
+      console.error("Error fetching vehicles:", err);
+      return [];
     }
-    return data;
   },
 
   async getVehicleById(id) {
-    await delay(200);
-    const v = vehicles.find(v => v.id === Number(id));
-    if (!v) throw new Error('Vehicle not found');
-    return v;
+    try {
+      const response = await apiClient.get(`/vehicles/${id}`);
+      const v = response.data.vehicle;
+      return {
+        ...v,
+        name: `${v.brand} ${v.model}`,
+        pricePerDay: v.price_per_day,
+        pricePerHour: v.price_per_hour,
+        image: v.photo_url || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=800',
+      };
+    } catch (err) {
+      throw new Error('Vehicle not found');
+    }
   },
 
-  async updateVehicleAvailability(id, available) {
-    await delay();
-    const v = vehicles.find(v => v.id === Number(id));
-    if (v) v.available = available;
-    return { success: true };
-  },
-
-  // Bookings
+  // ── Bookings ──────────────────────────────────────
   async createBooking(data) {
-    await delay(600);
-    return { id: 'BK' + Date.now(), ...data, status: 'Booked', createdAt: new Date().toISOString() };
+    // data has vehicleId, startDate, endDate
+    try {
+      const payload = {
+        vehicle_id: data.vehicleId,
+        start_date: new Date(data.startDate).toISOString(),
+        end_date: new Date(data.endDate).toISOString()
+      };
+      const response = await apiClient.post('/bookings', payload);
+      const b = response.data.booking;
+      return { ...b, id: b.id, vehicleId: b.vehicle_id, status: b.status, totalPrice: b.total_cost, startDate: b.start_date, endDate: b.end_date };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to create booking');
+    }
   },
 
   async getBookings() {
-    await delay();
-    return [];
+    try {
+      const response = await apiClient.get('/bookings');
+      return response.data.bookings.map(b => ({
+        id: b.id,
+        vehicleId: b.vehicle_id,
+        status: b.status,
+        totalPrice: b.total_cost,
+        startDate: b.start_date,
+        endDate: b.end_date,
+        createdAt: b.created_at
+      }));
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
   },
 
-  // Payments
+  // ── Payments ──────────────────────────────────────
   async processPayment({ bookingId, method, amount }) {
-    await delay(1000);
-    return { success: true, transactionId: 'TXN' + Date.now(), bookingId, method, amount };
+    try {
+      const payload = {
+        booking_id: bookingId,
+        mode: method
+      };
+      const response = await apiClient.post('/payments', payload);
+      return { success: true, transactionId: 'TXN_' + Date.now(), ...response.data.receipt };
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Payment failed');
+    }
   },
 };
