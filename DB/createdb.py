@@ -157,5 +157,133 @@ def create_database():
     print("    7. notifications              (alerts for all roles)")
 
 
+def seed_sample_data():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Keep demo setup deterministic for hackathon testing.
+    cursor.execute("DELETE FROM notifications;")
+    cursor.execute("DELETE FROM maintenance_logs;")
+    cursor.execute("DELETE FROM fleet_vehicle_assignments;")
+    cursor.execute("DELETE FROM rental_records;")
+    cursor.execute("DELETE FROM pricing_rules;")
+    cursor.execute("DELETE FROM vehicles;")
+    cursor.execute("DELETE FROM users;")
+
+    users = [
+        ("Admin User", "admin@rental.com", "admin123", "9999999999", "admin", None, "HQ"),
+        ("Fleet Manager One", "fleet1@rental.com", "fleet123", "8888888888", "fleet_manager", None, "North Zone"),
+        ("Fleet Manager Two", "fleet2@rental.com", "fleet234", "7777777777", "fleet_manager", None, "South Zone"),
+        ("Customer One", "customer1@rental.com", "cust123", "6666666666", "customer", "DL1234567890", None),
+        ("Customer Two", "customer2@rental.com", "cust234", "5555555555", "customer", "DL0987654321", None),
+    ]
+    cursor.executemany(
+        """
+        INSERT INTO users (
+            name, email, password_hash, phone, role, driving_license_number, assigned_zone
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        users,
+    )
+
+    vehicles = [
+        ("car", "Toyota", "Innova", "diesel", 7, 250.0, 2500.0, "available", "KA01AB1234", "2027-01-10", "2026-12-15", "/static/images/innova.jpg"),
+        ("car", "Tesla", "Model 3", "electric", 5, 400.0, 3800.0, "available", "KA01EV2026", "2027-03-01", "2027-02-01", "/static/images/model3.jpg"),
+        ("bike", "Yamaha", "FZ", "petrol", 2, 90.0, 700.0, "available", "KA02BI7777", "2026-11-20", "2026-10-15", "/static/images/fz.jpg"),
+        ("van", "Force", "Traveller", "diesel", 12, 320.0, 3000.0, "maintenance", "KA03VN9001", "2026-09-30", "2026-09-30", "/static/images/traveller.jpg"),
+    ]
+    cursor.executemany(
+        """
+        INSERT INTO vehicles (
+            type, brand, model, fuel_type, seating_capacity, price_per_hour, price_per_day,
+            availability_status, registration_number, fitness_expiry, insurance_expiry, photo_path
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        vehicles,
+    )
+
+    rules = [
+        ("Weekend Surge", "weekend", 1.2, 0.0, None, None, "2025-01-01", "2027-12-31", 1),
+        ("Summer Seasonal", "seasonal", 1.1, 0.0, None, None, "2026-03-01", "2026-06-30", 1),
+        ("Late Return Penalty", "late_fee", 1.0, 300.0, None, None, "2025-01-01", "2027-12-31", 1),
+        ("HACK10 Coupon", "coupon", 1.0, 0.0, "HACK10", 10.0, "2025-01-01", "2027-12-31", 1),
+    ]
+    cursor.executemany(
+        """
+        INSERT INTO pricing_rules (
+            rule_name, rule_type, multiplier, flat_fee, discount_code, discount_percent,
+            valid_from, valid_to, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        rules,
+    )
+
+    assignments = [
+        (2, 1, 1),
+        (2, 3, 1),
+        (3, 2, 1),
+        (3, 4, 1),
+    ]
+    cursor.executemany(
+        """
+        INSERT INTO fleet_vehicle_assignments (fleet_manager_id, vehicle_id, is_active)
+        VALUES (?, ?, ?)
+        """,
+        assignments,
+    )
+
+    rentals = [
+        (4, 1, None, "2026-03-28T09:00:00", "2026-03-29T09:00:00", None, 2750.0, "cash", "pending", "booked"),
+        (5, 2, None, "2026-03-25T10:00:00", "2026-03-26T18:00:00", "2026-03-26T17:30:00", 5800.0, "upi", "paid", "returned"),
+        (4, 3, None, "2026-03-27T15:00:00", "2026-03-27T20:00:00", None, 540.0, "card", "pending", "picked_up"),
+    ]
+    cursor.executemany(
+        """
+        INSERT INTO rental_records (
+            customer_id, vehicle_id, pricing_rule_id, start_datetime, end_datetime, actual_return_datetime,
+            total_cost, payment_mode, payment_status, rental_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        rentals,
+    )
+
+    maintenance = [
+        (4, 3, "routine", "Oil and brake check", 2200.0, "2026-03-20", "2026-06-20"),
+        (1, 2, "inspection", "Post-trip inspection", 500.0, "2026-03-26", "2026-04-26"),
+    ]
+    cursor.executemany(
+        """
+        INSERT INTO maintenance_logs (
+            vehicle_id, fleet_manager_id, maintenance_type, description, cost, maintenance_date, next_due_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        maintenance,
+    )
+
+    notifications = [
+        (4, "Your booking #1 is confirmed."),
+        (2, "Vehicle KA01AB1234 pickup scheduled at 09:00."),
+        (1, "2 new bookings were created today."),
+    ]
+    cursor.executemany(
+        """
+        INSERT INTO notifications (user_id, message) VALUES (?, ?)
+        """,
+        notifications,
+    )
+
+    # Keep vehicle 3 in rented status due to active picked_up booking.
+    cursor.execute("UPDATE vehicles SET availability_status = 'rented' WHERE vehicle_id = 3;")
+
+    conn.commit()
+    conn.close()
+    print("[OK] Sample data seeded.")
+    print("[TEST CREDENTIALS]")
+    print("  Admin        -> admin@rental.com / admin123")
+    print("  FleetManager -> fleet1@rental.com / fleet123")
+    print("  Customer     -> customer1@rental.com / cust123")
+
+
 if __name__ == "__main__":
     create_database()
+    seed_sample_data()
