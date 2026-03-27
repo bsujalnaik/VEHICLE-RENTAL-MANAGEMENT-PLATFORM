@@ -1,6 +1,6 @@
 .pay-layout {
   display: grid;
-  grid-template-columns: 350px 1fr;
+  grid-template-columns: 370px 1fr;
   gap: 32px;
   align-items: flex-start;
 }
@@ -14,21 +14,28 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-100);
 }
 
 .pay-vehicle-summary img {
-  width: 80px;
-  height: 60px;
+  width: 88px;
+  height: 64px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   background: var(--gray-100);
+  box-shadow: var(--shadow-sm);
 }
 
 .pay-vehicle-summary h4 {
-  font-size: 0.95rem;
-  margin-bottom: 2px;
+  font-size: 0.97rem;
+  margin-bottom: 3px;
   color: var(--gray-900);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .pay-vehicle-summary p {
@@ -42,17 +49,24 @@
   justify-content: space-between;
   font-size: 0.88rem;
   color: var(--gray-600);
+  align-items: center;
 }
 
 .pay-row.mt-8 { margin-top: 8px; }
+
 .pay-total {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: linear-gradient(135deg, var(--primary-50), #eef2ff);
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--primary-100);
+  margin-top: 4px;
 }
 .pay-total span:first-child {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--gray-900);
 }
 
@@ -65,7 +79,7 @@
 }
 
 .pm-btn {
-  padding: 12px 10px;
+  padding: 14px 10px;
   border-radius: var(--radius);
   border: 1.5px solid var(--gray-200);
   background: var(--white);
@@ -77,27 +91,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  box-shadow: var(--shadow-xs);
 }
 
 .pm-btn:hover {
   background: var(--gray-50);
   border-color: var(--gray-300);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .pm-btn.active {
   background: var(--primary-50);
   border-color: var(--primary);
   color: var(--primary-dark);
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
 }
 
 .upi-qr {
   margin: 16px auto;
   padding: 16px;
-  border: 1px dashed var(--gray-300);
+  border: 2px dashed var(--primary-200);
   border-radius: var(--radius-md);
-  background: var(--white);
+  background: var(--primary-50);
   width: max-content;
+  text-align: center;
 }
 
 @media (max-width: 768px) {

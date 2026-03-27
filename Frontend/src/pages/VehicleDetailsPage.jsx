@@ -96,6 +96,12 @@ const VehicleDetailsPage = () => {
               </div>
             </div>
 
+            {vehicle.location && (
+              <div style={{ fontSize: '1rem', color: 'var(--gray-600)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
+                <span style={{ fontSize: '1.2rem' }}>📍</span> Location: {vehicle.location}
+              </div>
+            )}
+
             <p className="vdp-desc">{vehicle.description}</p>
 
             <div className="vdp-specs-grid">

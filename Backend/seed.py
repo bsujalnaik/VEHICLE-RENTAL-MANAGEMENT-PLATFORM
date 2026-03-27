@@ -32,11 +32,19 @@ def seed_db():
             password_hash=bcrypt.generate_password_hash("admin123").decode('utf-8'),
             role="admin"
         )
-        fleet = User(
-            name="Fleet Manager",
-            email="fleet@vrmp.com",
+        fleet_north = User(
+            name="North Hub Manager",
+            email="north@vrmp.com",
             password_hash=bcrypt.generate_password_hash("fleet123").decode('utf-8'),
-            role="fleet"
+            role="fleet",
+            location="North Station"
+        )
+        fleet_south = User(
+            name="South Hub Manager",
+            email="south@vrmp.com",
+            password_hash=bcrypt.generate_password_hash("fleet123").decode('utf-8'),
+            role="fleet",
+            location="South Terminal"
         )
         customer = User(
             name="Jane Customer",
@@ -44,21 +52,26 @@ def seed_db():
             password_hash=bcrypt.generate_password_hash("customer123").decode('utf-8'),
             role="customer"
         )
-        db.session.add_all([admin, fleet, customer])
+        db.session.add_all([admin, fleet_north, fleet_south, customer])
+        db.session.flush() # Get IDs
 
         print("\nSeeding Vehicles...")
         v1 = Vehicle(brand="Tesla", model="Model 3", type="car", fuel="electric", seats=5,
                      price_per_hour=25, price_per_day=150, registration="TS-01-EV-2024",
-                     photo_url="https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=80")
+                     photo_url="https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&q=80",
+                     fleet_manager_id=fleet_north.id)
         v2 = Vehicle(brand="BMW", model="X5", type="car", fuel="diesel", seats=5,
                      price_per_hour=35, price_per_day=200, registration="BW-02-SUV-2023",
-                     photo_url="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80")
+                     photo_url="https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&q=80",
+                     fleet_manager_id=fleet_north.id)
         v3 = Vehicle(brand="Honda", model="CR-V", type="car", fuel="petrol", seats=5,
                      price_per_hour=15, price_per_day=90, registration="HN-03-CRV-2022",
-                     photo_url="https://images.unsplash.com/photo-1568844293986-8d0400ba4724?w=800&q=80")
+                     photo_url="https://images.unsplash.com/photo-1568844293986-8d0400ba4724?w=800&q=80",
+                     fleet_manager_id=fleet_south.id)
         v4 = Vehicle(brand="Mercedes", model="Sprinter", type="van", fuel="diesel", seats=12,
                      price_per_hour=40, price_per_day=250, registration="MC-04-VAN-2023",
-                     photo_url="https://images.unsplash.com/photo-1616422285623-14ffbd9f491c?w=800&q=80")
+                     photo_url="https://images.unsplash.com/photo-1616422285623-14ffbd9f491c?w=800&q=80",
+                     fleet_manager_id=fleet_south.id)
         db.session.add_all([v1, v2, v3, v4])
 
         print("Seeding Pricing Rules...")

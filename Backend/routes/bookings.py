@@ -27,8 +27,16 @@ def list_bookings():
     user_id = int(get_jwt_identity())
 
     if role in ("admin", "fleet"):
-        bookings = Booking.query.order_by(Booking.created_at.desc()).all()
+        if role == "fleet":
+            # Fleet sees only bookings for vehicles assigned to them
+            bookings = Booking.query.join(Vehicle)\
+                                    .filter(Vehicle.fleet_manager_id == user_id)\
+                                    .order_by(Booking.created_at.desc()).all()
+        else:
+            # Admin sees everything
+            bookings = Booking.query.order_by(Booking.created_at.desc()).all()
     else:
+        # Customer sees their own
         bookings = Booking.query.filter_by(user_id=user_id)\
                                 .order_by(Booking.created_at.desc()).all()
 
@@ -54,6 +62,38 @@ def get_booking(booking_id):
 
     return jsonify({"booking": booking.to_dict()}), 200
 
+
+# ── POST /bookings/estimate ────────────────────
+@bookings_bp.route("/estimate", methods=["POST"])
+@jwt_required()
+def estimate_booking():
+    """Estimate total cost including pricing rules."""
+    data = request.get_json()
+    required = ["vehicle_id", "start_date", "end_date"]
+    for field in required:
+        if field not in data:
+            return jsonify({"error": f"'{field}' is required"}), 400
+
+    vehicle = Vehicle.query.get(data["vehicle_id"])
+    if not vehicle:
+        return jsonify({"error": "Vehicle not found"}), 404
+
+    from datetime import datetime
+    try:
+        start = datetime.fromisoformat(data["start_date"])
+        end = datetime.fromisoformat(data["end_date"])
+    except (ValueError, TypeError):
+        return jsonify({"error": "Invalid date format — use ISO-8601"}), 400
+
+    if end <= start:
+        return jsonify({"error": "end_date must be after start_date"}), 400
+
+    total_cost = calculate_price(vehicle, start, end)
+    
+    return jsonify({
+        "estimate": total_cost,
+        "days": (end - start).days or 1
+    }), 200
 
 # ── POST /bookings ────────────────────────────
 @bookings_bp.route("", methods=["POST"])
@@ -115,6 +155,38 @@ def create_booking():
     }), 201
 
 
+# ── PATCH /bookings/<id>/cancel ───────────────
+@bookings_bp.route("/<int:booking_id>/cancel", methods=["PATCH"])
+@jwt_required()
+def cancel_booking(booking_id):
+    """Customer cancels their own booking (only if status is BOOKED)."""
+    user_id = int(get_jwt_identity())
+    booking = Booking.query.get(booking_id)
+    if not booking:
+        return jsonify({"error": "Booking not found"}), 404
+
+    # Customers can only cancel their own bookings
+    from flask_jwt_extended import get_jwt
+    role = get_jwt().get("role", "customer")
+    if role == "customer" and booking.user_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    if booking.status != "BOOKED":
+        return jsonify({"error": f"Cannot cancel a booking with status '{booking.status}'"}), 400
+
+    booking.status = "CANCELLED"
+    # Release the vehicle
+    vehicle = Vehicle.query.get(booking.vehicle_id)
+    if vehicle:
+        vehicle.status = "available"
+    db.session.commit()
+
+    return jsonify({
+        "message": "Booking cancelled",
+        "booking": booking.to_dict(),
+    }), 200
+
+
 # ── PATCH /bookings/<id>/pickup ───────────────
 @bookings_bp.route("/<int:booking_id>/pickup", methods=["PATCH"])
 @jwt_required()
@@ -124,6 +196,12 @@ def pickup_booking(booking_id):
     booking = Booking.query.get(booking_id)
     if not booking:
         return jsonify({"error": "Booking not found"}), 404
+
+    from flask_jwt_extended import get_jwt, get_jwt_identity
+    if get_jwt().get("role") == "fleet":
+        vehicle = Vehicle.query.get(booking.vehicle_id)
+        if vehicle and vehicle.fleet_manager_id != int(get_jwt_identity()):
+            return jsonify({"error": "Forbidden: You do not manage this vehicle"}), 403
 
     ok, error = transition_status(booking, "PICKED_UP")
     if not ok:
@@ -150,6 +228,12 @@ def return_booking(booking_id):
     booking = Booking.query.get(booking_id)
     if not booking:
         return jsonify({"error": "Booking not found"}), 404
+
+    from flask_jwt_extended import get_jwt, get_jwt_identity
+    if get_jwt().get("role") == "fleet":
+        vehicle = Vehicle.query.get(booking.vehicle_id)
+        if vehicle and vehicle.fleet_manager_id != int(get_jwt_identity()):
+            return jsonify({"error": "Forbidden: You do not manage this vehicle"}), 403
 
     ok, error = transition_status(booking, "RETURNED")
     if not ok:

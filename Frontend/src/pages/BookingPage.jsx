@@ -15,6 +15,7 @@ const BookingPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [days, setDays] = useState(0);
+  const [estimatedPrice, setEstimatedPrice] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -44,11 +45,19 @@ const BookingPage = () => {
       const end = new Date(endDate);
       const diffTime = Math.abs(end - start);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setDays(diffDays > 0 ? diffDays : Number(startDate !== endDate ? 1 : 0));
+      const calcDays = diffDays > 0 ? diffDays : Number(startDate !== endDate ? 1 : 0);
+      setDays(calcDays);
+
+      if (vehicle && start <= end) {
+        api.estimateBooking({ vehicleId: vehicle.id, startDate, endDate })
+          .then(data => setEstimatedPrice(data.estimate))
+          .catch(console.error);
+      }
     } else {
       setDays(0);
+      setEstimatedPrice(0);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, vehicle]);
 
   const handleBook = () => {
     if (!startDate || !endDate) {
@@ -69,7 +78,7 @@ const BookingPage = () => {
       startDate,
       endDate,
       totalDays: days,
-      totalPrice: days * vehicle.pricePerDay,
+      totalPrice: estimatedPrice || days * vehicle.pricePerDay,
       userId: user.id
     };
     
@@ -141,6 +150,21 @@ const BookingPage = () => {
                 <h3 className="bk-vehicle-name">{vehicle.brand} {vehicle.name}</h3>
                 <div className="bk-vehicle-type">{vehicle.type} • {vehicle.transmission}</div>
                 
+                {vehicle.location && (
+                  <div style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--gray-700)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>📍</span>
+                      <strong>Pickup:</strong> {vehicle.location}
+                    </div>
+                    {vehicle.fleetManagerName && vehicle.fleetManagerName !== "Not Assigned" && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>👤</span>
+                        <strong>Manager:</strong> {vehicle.fleetManagerName}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 <div className="divider" />
                 
                 <div className="bk-breakdown">
@@ -155,7 +179,7 @@ const BookingPage = () => {
                   {days > 0 && (
                     <div className="bk-row text-success">
                       <span>Subtotal</span>
-                      <span>₹{days * vehicle.pricePerDay}</span>
+                      <span>₹{estimatedPrice || days * vehicle.pricePerDay}</span>
                     </div>
                   )}
                 </div>
@@ -164,7 +188,7 @@ const BookingPage = () => {
                 
                 <div className="bk-total">
                   <span>Total Price</span>
-                  <span className="bk-total-price">₹{days * vehicle.pricePerDay}</span>
+                  <span className="bk-total-price">₹{estimatedPrice || days * vehicle.pricePerDay}</span>
                 </div>
 
                 <button

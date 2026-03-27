@@ -115,6 +115,54 @@ def list_users():
     users = User.query.order_by(User.created_at.desc()).all()
     return jsonify({"users": [u.to_dict() for u in users]}), 200
 
+@admin_bp.route("/users", methods=["POST"])
+@jwt_required()
+@require_role("admin")
+def create_user():
+    """Create a new user (usually a fleet manager)."""
+    data = request.get_json()
+    if not data.get("name") or not data.get("email") or not data.get("password"):
+        return jsonify({"error": "name, email, password are required"}), 400
+
+    if User.query.filter_by(email=data["email"]).first():
+        return jsonify({"error": "Email already exists"}), 409
+
+    from extensions import bcrypt
+    pw_hash = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
+    
+    user = User(
+        name=data["name"],
+        email=data["email"],
+        password_hash=pw_hash,
+        role=data.get("role", "customer"),
+        location=data.get("location")
+    )
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"message": "User created", "user": user.to_dict()}), 201
+
+@admin_bp.route("/users/<int:user_id>", methods=["PUT"])
+@jwt_required()
+@require_role("admin")
+def update_user(user_id):
+    """Update an existing user (e.g. change role or location)."""
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.get_json()
+    if "name" in data: user.name = data["name"]
+    if "email" in data: user.email = data["email"]
+    if "role" in data: user.role = data["role"]
+    if "location" in data: user.location = data["location"]
+    
+    if data.get("password"):
+        from extensions import bcrypt
+        user.password_hash = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
+
+    db.session.commit()
+    return jsonify({"message": "User updated", "user": user.to_dict()}), 200
+
 
 # ────────────────────────────────────────────────
 #  Reports

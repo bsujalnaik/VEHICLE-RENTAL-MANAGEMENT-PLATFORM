@@ -19,14 +19,14 @@ const Navbar = () => {
   // Only show Browse Vehicles and My Rentals for customers (not for admin/fleet)
   const isAdminOrFleet = user && (user.role === 'admin' || user.role === 'fleet');
   const navLinks = isAdminOrFleet ? [] : [
-    { to: '/vehicles', label: 'Browse Vehicles', icon: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=100&q=80' },
-    { to: '/rentals', label: 'My Rentals', icon: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=100&q=80', requireAuth: true },
+    { to: '/vehicles', label: 'Browse Vehicles', icon: '🚘' },
+    { to: '/rentals', label: 'My Rentals', icon: '📋', requireAuth: true },
   ];
 
   const getDashboardLink = () => {
     if (!user) return null;
-    if (user.role === 'admin')  return { to: '/admin',  label: 'Admin Panel', icon: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=100&q=80' };
-    if (user.role === 'fleet')  return { to: '/fleet',  label: 'Fleet Dashboard', icon: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=100&q=80' };
+    if (user.role === 'admin')  return { to: '/admin',  label: 'Admin Panel', icon: '⚙️' };
+    if (user.role === 'fleet')  return { to: '/fleet',  label: 'Fleet Dashboard', icon: '🚛' };
     return null;
   };
   const dashLink = getDashboardLink();
@@ -36,9 +36,7 @@ const Navbar = () => {
       <div className="navbar-inner">
         {/* Logo */}
         <Link to="/" className="navbar-logo">
-          <div className="logo-icon">
-            <img src="https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=100&q=80" alt="DriveHub" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
-          </div>
+          <div className="logo-icon" />
           <div className="logo-text">
             <span className="logo-main">DriveHub</span>
             <span className="logo-sub">Vehicle Rentals</span>
@@ -54,7 +52,7 @@ const Navbar = () => {
                 to={link.to}
                 className={`nav-link ${location.pathname.startsWith(link.to) ? 'active' : ''}`}
               >
-                <img src={link.icon} alt={link.label} style={{ width: '18px', height: '18px', borderRadius: '4px', objectFit: 'cover' }} />
+                <span className="nav-icon">{link.icon}</span>
                 {link.label}
               </Link>
             )
@@ -64,8 +62,8 @@ const Navbar = () => {
               to={dashLink.to}
               className={`nav-link nav-link-dashboard ${location.pathname.startsWith(dashLink.to) ? 'active' : ''}`}
             >
-               <img src={dashLink.icon} alt={dashLink.label} style={{ width: '18px', height: '18px', borderRadius: '4px', objectFit: 'cover' }} />
-               {dashLink.label}
+              <span className="nav-icon">{dashLink.icon}</span>
+              {dashLink.label}
             </Link>
           )}
         </div>
@@ -94,17 +92,17 @@ const Navbar = () => {
                   <div className="dropdown-divider" />
                   {!isAdminOrFleet && (
                   <Link to="/rentals" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
-                     My Rentals
+                    📋 My Rentals
                   </Link>
                   )}
                   {dashLink && (
                     <Link to={dashLink.to} className="dropdown-item" onClick={() => setDropdownOpen(false)}>
-                       {dashLink.label}
+                      {dashLink.icon} {dashLink.label}
                     </Link>
                   )}
                   <div className="dropdown-divider" />
                   <button className="dropdown-item dropdown-logout" onClick={handleLogout}>
-                     Sign Out
+                    🚪 Sign Out
                   </button>
                 </div>
               )}
@@ -142,17 +140,17 @@ const Navbar = () => {
           ))}
           {dashLink && (
             <Link to={dashLink.to} className="mobile-nav-link" onClick={() => setMenuOpen(false)}>
-               {dashLink.label}
+              {dashLink.icon} {dashLink.label}
             </Link>
           )}
           {!user && (
             <>
-              <Link to="/login" className="mobile-nav-link" onClick={() => setMenuOpen(false)}> Sign In</Link>
-              <Link to="/signup" className="mobile-nav-link" onClick={() => setMenuOpen(false)}> Get Started</Link>
+              <Link to="/login" className="mobile-nav-link" onClick={() => setMenuOpen(false)}>Sign In</Link>
+              <Link to="/signup" className="mobile-nav-link" onClick={() => setMenuOpen(false)}>Get Started</Link>
             </>
           )}
           {user && (
-            <button className="mobile-nav-link mobile-logout" onClick={handleLogout}> Sign Out</button>
+            <button className="mobile-nav-link mobile-logout" onClick={handleLogout}>🚪 Sign Out</button>
           )}
         </div>
       )}

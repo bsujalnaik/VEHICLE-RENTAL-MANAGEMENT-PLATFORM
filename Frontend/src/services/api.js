@@ -107,6 +107,7 @@ export const api = {
         photo_url: data.image || data.photo_url || null,
         status: data.status || 'available',
       };
+      if (data.fleetManagerId) payload.fleet_manager_id = Number(data.fleetManagerId);
       const response = await apiClient.post('/vehicles', payload);
       const v = response.data.vehicle;
       return {
@@ -134,6 +135,7 @@ export const api = {
       if (data.registration !== undefined) payload.registration = data.registration;
       if (data.image !== undefined) payload.photo_url = data.image;
       if (data.status !== undefined) payload.status = data.status;
+      if (data.fleetManagerId !== undefined) payload.fleet_manager_id = data.fleetManagerId ? Number(data.fleetManagerId) : null;
 
       const response = await apiClient.put(`/vehicles/${id}`, payload);
       const v = response.data.vehicle;
@@ -172,6 +174,20 @@ export const api = {
   },
 
   // ── Bookings ──────────────────────────────────────
+  async estimateBooking(data) {
+    try {
+      const payload = {
+        vehicle_id: data.vehicleId,
+        start_date: new Date(data.startDate).toISOString(),
+        end_date: new Date(data.endDate).toISOString()
+      };
+      const response = await apiClient.post('/bookings/estimate', payload);
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to estimate booking');
+    }
+  },
+
   async createBooking(data) {
     try {
       const payload = {
@@ -247,6 +263,24 @@ export const api = {
     }
   },
 
+  async cancelBooking(id) {
+    try {
+      const response = await apiClient.patch(`/bookings/${id}/cancel`);
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to cancel booking');
+    }
+  },
+
+  async extendBooking(id, newEndDate) {
+    try {
+      const response = await apiClient.patch(`/bookings/${id}/extend`, { new_end_date: newEndDate });
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to extend booking');
+    }
+  },
+
   // ── Payments ──────────────────────────────────────
   async processPayment({ bookingId, method, amount }) {
     try {
@@ -280,6 +314,24 @@ export const api = {
     } catch (err) {
       console.error('Error fetching users:', err);
       return [];
+    }
+  },
+
+  async createUser(data) {
+    try {
+      const response = await apiClient.post('/admin/users', data);
+      return response.data.user;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to create user');
+    }
+  },
+
+  async updateUser(id, data) {
+    try {
+      const response = await apiClient.put(`/admin/users/${id}`, data);
+      return response.data.user;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to update user');
     }
   },
 

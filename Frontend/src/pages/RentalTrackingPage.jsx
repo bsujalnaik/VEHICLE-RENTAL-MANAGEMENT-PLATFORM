@@ -6,7 +6,7 @@ import './RentalTrackingPage.css';
 import { api } from '../services/api';
 
 const RentalTrackingPage = () => {
-  const { user, bookings } = useApp();
+  const { user, bookings, addToast, refreshBookings } = useApp();
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isExtending, setIsExtending] = useState(false);
   const [newEndDate, setNewEndDate] = useState('');
@@ -15,10 +15,18 @@ const RentalTrackingPage = () => {
   const userBookings = bookings.filter(b => user.role === 'customer' ? b.userId === user.id : true);
 
   const handleExtend = async () => {
-    // Mock extend logic
-    alert(`Booking ${selectedBooking.id} extended to ${newEndDate}`);
-    setIsExtending(false);
-    setSelectedBooking(null);
+    if (!newEndDate || !selectedBooking) return;
+    try {
+      await api.extendBooking(selectedBooking.id, newEndDate);
+      addToast(`Booking extended successfully to ${newEndDate}`, 'success');
+      refreshBookings();
+    } catch (err) {
+      addToast(err.message || 'Failed to extend booking', 'error');
+    } finally {
+      setIsExtending(false);
+      setSelectedBooking(null);
+      setNewEndDate('');
+    }
   };
 
   const getStatusMessage = (status) => {
@@ -67,6 +75,15 @@ const RentalTrackingPage = () => {
                 
                 <h3 className="rt-vehicle-name">{bk.vehicleName}</h3>
                 
+                {bk.location && (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--gray-600)', marginBottom: '12px' }}>
+                    <div><span style={{marginRight: '6px'}}>📍</span><strong>Location:</strong> {bk.location}</div>
+                    {bk.fleetManagerName && bk.fleetManagerName !== "Not Assigned" && (
+                      <div style={{ marginTop: '4px' }}><span style={{marginRight: '6px'}}>👤</span><strong>Manager:</strong> {bk.fleetManagerName}</div>
+                    )}
+                  </div>
+                )}
+                
                 <div className="rt-details">
                   <div className="rt-detail-item">
                     <span className="rt-lbl">Pickup</span>
@@ -89,9 +106,7 @@ const RentalTrackingPage = () => {
                 {['Booked', 'Active'].includes(bk.status) && (
                   <div className="rt-actions mt-16 flex justify-end gap-8">
                     <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedBooking(bk); setIsExtending(true); }}>Extend</button>
-                    {(bk.status === 'Booked') && (
-                      <button className="btn btn-danger btn-sm">Cancel</button>
-                    )}
+
                   </div>
                 )}
               </div>

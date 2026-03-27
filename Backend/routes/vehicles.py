@@ -87,6 +87,8 @@ def list_vehicles():
     if role in ("admin", "fleet"):
         if status:
             query = query.filter(Vehicle.status == status)
+        if role == "fleet":
+            query = query.filter(Vehicle.fleet_manager_id == int(identity))
     else:
         # Customers can ONLY see available vehicles
         query = query.filter(Vehicle.status == "available")
@@ -135,6 +137,7 @@ def create_vehicle():
         insurance_expiry=data.get("insurance_expiry"),
         photo_url=data.get("photo_url"),
         status=data.get("status", "available"),
+        fleet_manager_id=data.get("fleet_manager_id"),
     )
     db.session.add(vehicle)
     db.session.commit()
@@ -145,20 +148,36 @@ def create_vehicle():
     }), 201
 
 
-# ── PUT /vehicles/<id> (Admin only) ──────────
+# ── PUT /vehicles/<id> (Admin + Fleet) ──────────
 @vehicles_bp.route("/<int:vehicle_id>", methods=["PUT"])
 @jwt_required()
-@require_role("admin")
+@require_role("admin", "fleet")
 def update_vehicle(vehicle_id):
-    """Admin updates vehicle details."""
+    """Admin updates any field; Fleet manager can only toggle status on their own vehicles."""
+    from flask_jwt_extended import get_jwt
+    claims = get_jwt()
+    role = claims.get("role", "customer")
+    user_id = int(get_jwt_identity())
+
     vehicle = Vehicle.query.get(vehicle_id)
     if not vehicle:
         return jsonify({"error": "Vehicle not found"}), 404
 
+    # Fleet managers can only update their own vehicles' status
+    if role == "fleet":
+        if vehicle.fleet_manager_id != user_id:
+            return jsonify({"error": "You can only update vehicles assigned to you"}), 403
+        data = request.get_json()
+        if "status" in data:
+            vehicle.status = data["status"]
+        db.session.commit()
+        return jsonify({"message": "Vehicle updated", "vehicle": vehicle.to_dict()}), 200
+
+    # Admin — full update
     data = request.get_json()
     updatable = ["brand", "model", "type", "fuel", "seats",
                  "price_per_hour", "price_per_day", "registration",
-                 "fitness_expiry", "insurance_expiry", "photo_url", "status"]
+                 "fitness_expiry", "insurance_expiry", "photo_url", "status", "fleet_manager_id"]
 
     for field in updatable:
         if field in data:

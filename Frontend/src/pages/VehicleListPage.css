@@ -1,24 +1,43 @@
-.vlp-page { padding-top: calc(var(--navbar-height) + 24px); padding-bottom: 60px; }
+.vlp-page {
+  padding-top: calc(var(--navbar-height) + 32px);
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
 
 .vlp-header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
   flex-wrap: wrap;
   gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--gray-200);
 }
 
-.vlp-header h1 { margin-bottom: 4px; }
-.vlp-header p  { color: var(--gray-500); }
+.vlp-header h1 { margin-bottom: 6px; }
+.vlp-header p  { color: var(--gray-500); font-size: 0.95rem; }
 
 .vlp-sort {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--gray-600);
+}
+
+.vlp-sort label { white-space: nowrap; }
+
+.vlp-sort select {
+  border-radius: var(--radius);
+  border: 1.5px solid var(--gray-200);
+  padding: 9px 14px;
+  font-size: 0.875rem;
+  background: var(--white);
+  box-shadow: var(--shadow-xs);
+  cursor: pointer;
+  color: var(--gray-800);
 }
 
 .vlp-layout {
@@ -30,7 +49,7 @@
 
 .vehicles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(275px, 1fr));
   gap: 22px;
 }
 

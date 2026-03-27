@@ -2,10 +2,13 @@ import { useApp } from '../../context/AppContext';
 import StatusBadge from '../../components/StatusBadge';
 
 const FleetOverview = () => {
-  const { vehicles: fleet, maintenanceLogs } = useApp();
+  const { vehicles: fleet, maintenanceLogs, bookings } = useApp();
 
   const availableCount = fleet.filter(v => v.status === 'available').length;
   const pendingMaintenance = maintenanceLogs.filter(l => l.status === 'Pending').length;
+  
+  // Filter active bookings (Booked, Paid, Picked Up) to show upcoming returns
+  const activeBookings = bookings.filter(b => ['BOOKED', 'PAID', 'PICKED_UP', 'Booked', 'Paid', 'Picked Up'].includes(b.status));
 
   return (
     <div className="fleet-overview">
@@ -41,6 +44,45 @@ const FleetOverview = () => {
             <div className="stat-value">{pendingMaintenance}</div>
             <div className="stat-label">Maintenance Pending</div>
           </div>
+        </div>
+      </div>
+
+      <div className="card mb-32">
+        <div className="card-header">
+          <h3 style={{ fontSize: '1rem', margin: 0 }}>Active Bookings & Expected Returns</h3>
+        </div>
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Vehicle</th>
+                <th>Start Date</th>
+                <th>Return Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeBookings.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="text-center p-24 text-gray-400">No active bookings for your fleet.</td>
+                </tr>
+              ) : (
+                activeBookings.map(bk => {
+                  const vehicleName = fleet.find(v => v.id === bk.vehicleId)?.name || `Vehicle #${bk.vehicleId}`;
+                  return (
+                    <tr key={bk.id}>
+                      <td className="font-semibold text-gray-500">#{bk.id}</td>
+                      <td className="font-semibold">{vehicleName}</td>
+                      <td className="text-gray-500">{new Date(bk.startDate).toLocaleDateString()}</td>
+                      <td className="text-primary font-bold">{new Date(bk.endDate).toLocaleDateString()}</td>
+                      <td><StatusBadge status={bk.status} /></td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

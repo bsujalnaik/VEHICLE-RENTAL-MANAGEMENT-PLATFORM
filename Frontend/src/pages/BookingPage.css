@@ -1,6 +1,6 @@
 .bk-layout {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 1fr 400px;
   gap: 32px;
   align-items: flex-start;
 }
@@ -12,8 +12,8 @@
 
 .renter-details {
   border: 1px solid var(--gray-200);
-  background: var(--gray-50);
-  padding: 20px;
+  background: linear-gradient(135deg, var(--gray-50), #fafbff);
+  padding: 22px;
   border-radius: var(--radius-md);
   margin-top: 24px;
 }
@@ -24,26 +24,40 @@
   background: var(--gray-100);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   overflow: hidden;
+  position: relative;
 }
 
 .bk-summary-img img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.bk-summary-img:hover img { transform: scale(1.04); }
+
+.bk-summary-img::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
 }
 
 .bk-vehicle-name {
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 800;
   color: var(--gray-900);
-  margin-bottom: 6px;
-  margin-top: 8px;
+  margin-bottom: 4px;
+  margin-top: 10px;
+  letter-spacing: -0.02em;
 }
 
 .bk-vehicle-type {
   font-size: 0.85rem;
   color: var(--gray-500);
-  margin-bottom: 20px;
+  margin-bottom: 22px;
+  font-weight: 500;
 }
 
 .bk-breakdown {
@@ -55,28 +69,40 @@
 .bk-row {
   display: flex;
   justify-content: space-between;
-  font-size: 0.95rem;
+  font-size: 0.93rem;
   color: var(--gray-700);
   font-weight: 500;
+  align-items: center;
+}
+
+.bk-row span:last-child {
+  font-weight: 600;
+  color: var(--gray-900);
 }
 
 .bk-total {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: linear-gradient(135deg, var(--primary-50), #eef2ff);
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--primary-100);
+  margin-top: 4px;
 }
 
 .bk-total span:first-child {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--gray-900);
 }
 
 .bk-total-price {
-  font-size: 1.8rem;
-  font-weight: 800;
+  font-size: 2rem;
+  font-weight: 900;
   color: var(--primary);
   font-family: var(--font-display);
+  letter-spacing: -0.03em;
 }
 
 @media (max-width: 900px) {

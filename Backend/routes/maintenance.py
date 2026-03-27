@@ -20,6 +20,12 @@ def list_logs():
     query = MaintenanceLog.query
     if vehicle_id:
         query = query.filter_by(vehicle_id=vehicle_id)
+        
+    from flask_jwt_extended import get_jwt, get_jwt_identity
+    if get_jwt().get("role") == "fleet":
+        user_id = int(get_jwt_identity())
+        query = query.join(Vehicle).filter(Vehicle.fleet_manager_id == user_id)
+        
     logs = query.order_by(MaintenanceLog.date.desc()).all()
     return jsonify({"maintenance_logs": [l.to_dict() for l in logs]}), 200
 
@@ -43,6 +49,10 @@ def create_log():
     vehicle = Vehicle.query.get(data["vehicle_id"])
     if not vehicle:
         return jsonify({"error": "Vehicle not found"}), 404
+
+    from flask_jwt_extended import get_jwt, get_jwt_identity
+    if get_jwt().get("role") == "fleet" and vehicle.fleet_manager_id != int(get_jwt_identity()):
+        return jsonify({"error": "Forbidden: You do not manage this vehicle"}), 403
 
     log = MaintenanceLog(
         vehicle_id=vehicle.id,
@@ -74,6 +84,11 @@ def complete_maintenance(log_id):
         return jsonify({"error": "Log not found"}), 404
 
     vehicle = Vehicle.query.get(log.vehicle_id)
+    
+    from flask_jwt_extended import get_jwt, get_jwt_identity
+    if vehicle and get_jwt().get("role") == "fleet" and vehicle.fleet_manager_id != int(get_jwt_identity()):
+        return jsonify({"error": "Forbidden: You do not manage this vehicle"}), 403
+
     if vehicle:
         vehicle.status = "available"
 

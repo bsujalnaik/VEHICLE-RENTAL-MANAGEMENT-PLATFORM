@@ -33,6 +33,11 @@ const VehicleCard = ({ vehicle }) => {
             <span className="rating-count">({reviews})</span>
           </div>
         </div>
+        {vehicle.location && (
+          <div style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '1rem' }}>📍</span> {vehicle.location}
+          </div>
+        )}
 
         <div className="vc-specs">
           <div className="vc-spec">

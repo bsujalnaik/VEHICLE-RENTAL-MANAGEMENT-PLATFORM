@@ -91,9 +91,9 @@ const AuthPage = ({ mode = 'login' }) => {
             <label className="form-label">I am a...</label>
             <div className="role-selector">
               {[
-                { value: 'customer', label: 'Customer', desc: 'Rent vehicles', img: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80' },
-                { value: 'fleet',    label: 'Fleet Mgr', desc: 'Manage fleet', img: 'https://images.unsplash.com/photo-1542621334-a254cf47733d?w=100&q=80' },
-                { value: 'admin',    label: 'Admin',     desc: 'Full control', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80' },
+                { value: 'customer', label: 'Customer', desc: 'Rent vehicles', icon: '🚗' },
+                { value: 'fleet',    label: 'Fleet Mgr', desc: 'Manage fleet', icon: '🚛' },
+                { value: 'admin',    label: 'Admin',     desc: 'Full control', icon: '⚙️' },
               ].map(r => (
                 <button
                   key={r.value}
@@ -101,7 +101,7 @@ const AuthPage = ({ mode = 'login' }) => {
                   className={`role-card ${form.role === r.value ? 'active' : ''}`}
                   onClick={() => handleChange('role', r.value)}
                 >
-                  <img src={r.img} alt={r.label} style={{ width: '28px', height: '28px', borderRadius: '50%', marginBottom: '6px' }} />
+                  <span style={{ fontSize: '1.6rem', marginBottom: '4px' }}>{r.icon}</span>
                   <span className="role-icon-lbl">{r.label}</span>
                   <span className="role-desc">{r.desc}</span>
                 </button>

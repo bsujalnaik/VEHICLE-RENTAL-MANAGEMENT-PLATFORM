@@ -16,7 +16,8 @@ class User(db.Model):
     name       = db.Column(db.String(120), nullable=False)
     email      = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    role       = db.Column(db.String(20), nullable=False, default="customer")  # customer | admin | fleet
+    role = db.Column(db.String(20), default="customer")  # admin, fleet, customer
+    location = db.Column(db.String(120), nullable=True)  # specifically for fleet managers
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     bookings = db.relationship("Booking", backref="user", lazy=True)
@@ -27,7 +28,8 @@ class User(db.Model):
             "name": self.name,
             "email": self.email,
             "role": self.role,
-            "created_at": self.created_at.isoformat(),
+            "location": self.location,
+            "created_at": self.created_at.isoformat()
         }
 
 
@@ -50,25 +52,35 @@ class Vehicle(db.Model):
     insurance_expiry = db.Column(db.Date, nullable=True)
     photo_url        = db.Column(db.String(256), nullable=True)
     status           = db.Column(db.String(20), nullable=False, default="available")  # available | maintenance | unavailable
+    fleet_manager_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     bookings         = db.relationship("Booking", backref="vehicle", lazy=True)
     maintenance_logs = db.relationship("MaintenanceLog", backref="vehicle", lazy=True)
+    fleet_manager    = db.relationship("User", foreign_keys=[fleet_manager_id])
 
     def to_dict(self):
+        # We also map these to frontend-friendly names for the React UI
+        # Previously we aliased brand->brand, model->name, photo_url->image, etc.
         return {
             "id": self.id,
             "brand": self.brand,
             "model": self.model,
+            "name": self.model,  # Frontend backward compatibility
             "type": self.type,
             "fuel": self.fuel,
             "seats": self.seats,
             "price_per_hour": self.price_per_hour,
             "price_per_day": self.price_per_day,
+            "pricePerDay": self.price_per_day,  # Frontend backward compatibility
             "registration": self.registration,
             "fitness_expiry": self.fitness_expiry.isoformat() if self.fitness_expiry else None,
             "insurance_expiry": self.insurance_expiry.isoformat() if self.insurance_expiry else None,
             "photo_url": self.photo_url,
+            "image": self.photo_url,  # Frontend backward compatibility
             "status": self.status,
+            "fleetManagerId": self.fleet_manager_id,
+            "location": self.fleet_manager.location if self.fleet_manager and self.fleet_manager.location else None,
+            "fleetManagerName": self.fleet_manager.name if self.fleet_manager else "Not Assigned"
         }
 
 
@@ -95,6 +107,8 @@ class Booking(db.Model):
             "vehicle_id": self.vehicle_id,
             "vehicle_name": f"{self.vehicle.brand} {self.vehicle.model}" if self.vehicle else "Unknown Vehicle",
             "vehicle_image": self.vehicle.photo_url if self.vehicle else "https://images.unsplash.com/photo-1549399542-7e3f8b79c341",
+            "location": self.vehicle.fleet_manager.location if self.vehicle and self.vehicle.fleet_manager else None,
+            "fleetManagerName": self.vehicle.fleet_manager.name if self.vehicle and self.vehicle.fleet_manager else "Not Assigned",
             "start_date": self.start_date.isoformat(),
             "end_date": self.end_date.isoformat(),
             "status": self.status,

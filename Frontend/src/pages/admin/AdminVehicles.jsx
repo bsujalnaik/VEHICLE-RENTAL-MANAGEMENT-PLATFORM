@@ -1,21 +1,29 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import StatusBadge from '../../components/StatusBadge';
 import Modal from '../../components/Modal';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../services/api';
 
 const AdminVehicles = () => {
-  const { vehicles, addVehicle, deleteVehicle, addToast } = useApp();
+  const { vehicles, addVehicle, updateVehicle, deleteVehicle, addToast } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [editingVehicle, setEditingVehicle] = useState(null);
   const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     brand: '', model: '', type: 'car', pricePerDay: 50, pricePerHour: 10,
     fuel: 'petrol', seats: 4, registration: '',
-    image: '',
+    image: '', fleetManagerId: '',
   });
   const [selectedFile, setSelectedFile] = useState(null);
+  const [fleetManagers, setFleetManagers] = useState([]);
+
+  useEffect(() => {
+    api.getUsers()
+      .then(users => setFleetManagers(users.filter(u => u.role === 'fleet' || u.location)))
+      .catch(err => console.error("Failed to fetch fleet managers", err));
+  }, []);
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
@@ -52,7 +60,19 @@ const AdminVehicles = () => {
     }
   };
 
-  const handleAdd = async () => {
+  const handleEdit = (v) => {
+    setEditingVehicle(v);
+    setFormData({
+      brand: v.brand || '', model: v.model || '', type: v.type || 'car',
+      pricePerDay: v.pricePerDay || 50, pricePerHour: v.pricePerHour || 10,
+      fuel: v.fuel || 'petrol', seats: v.seats || 4, registration: v.registration || '',
+      image: v.image || '', fleetManagerId: v.fleetManagerId || '',
+    });
+    setImagePreview(v.image || null);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async () => {
     if (!formData.model || !formData.brand || !formData.pricePerDay || !formData.registration) {
       addToast('Please fill all required fields (Brand, Model, Price, Registration)', 'error');
       return;
@@ -73,8 +93,8 @@ const AdminVehicles = () => {
           return;
         }
       }
-      
-      await addVehicle({
+
+      const payload = {
         brand: formData.brand,
         model: formData.model,
         name: formData.model,
@@ -84,22 +104,31 @@ const AdminVehicles = () => {
         pricePerHour: Number(formData.pricePerHour),
         pricePerDay: Number(formData.pricePerDay),
         registration: formData.registration,
+        fleetManagerId: formData.fleetManagerId || null,
         image: photoUrl,
-      });
-      addToast('New vehicle added to the fleet!', 'success');
+      };
+
+      if (editingVehicle) {
+        await updateVehicle(editingVehicle.id, payload);
+        addToast('Vehicle updated successfully!', 'success');
+      } else {
+        await addVehicle(payload);
+        addToast('New vehicle added to the fleet!', 'success');
+      }
       setIsModalOpen(false);
       resetForm();
     } catch (err) {
-      addToast(err.message || 'Failed to add vehicle', 'error');
+      addToast(err.message || 'Failed to save vehicle', 'error');
     } finally {
       setUploading(false);
     }
   };
 
   const resetForm = () => {
+    setEditingVehicle(null);
     setFormData({
       brand: '', model: '', type: 'car', pricePerDay: 50, pricePerHour: 10,
-      fuel: 'petrol', seats: 4, registration: '', image: '',
+      fuel: 'petrol', seats: 4, registration: '', image: '', fleetManagerId: ''
     });
     setSelectedFile(null);
     setImagePreview(null);
@@ -145,7 +174,7 @@ const AdminVehicles = () => {
                   <td><StatusBadge status={v.status === 'available' ? 'Available' : v.status === 'maintenance' ? 'Maintenance' : 'Unavailable'} /></td>
                   <td>
                     <div className="actions">
-                      <button className="btn btn-ghost btn-sm" onClick={() => addToast('Edit coming soon', 'info')}>Edit</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(v)}>Edit</button>
                       <button className="btn btn-danger btn-sm" onClick={() => handleDelete(v.id)}>Delete</button>
                     </div>
                   </td>
@@ -156,7 +185,7 @@ const AdminVehicles = () => {
         </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title="Add New Vehicle">
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title={editingVehicle ? 'Edit Vehicle' : 'Add New Vehicle'}>
         {/* Image Upload Section */}
         <div className="form-group mb-16">
           <label className="form-label">Vehicle Image</label>
@@ -261,6 +290,19 @@ const AdminVehicles = () => {
             <input type="text" className="form-control" placeholder="e.g. MH-02-AB-1234" value={formData.registration} onChange={e => setFormData({...formData, registration: e.target.value})} />
           </div>
         </div>
+
+        <div className="form-group mb-16">
+          <label className="form-label">Assign to Fleet Manager (Location)</label>
+          <select className="form-control" value={formData.fleetManagerId || ""} onChange={e => setFormData({...formData, fleetManagerId: e.target.value})}>
+            <option value="">-- No Fleet Manager (Unassigned) --</option>
+            {fleetManagers.map(fm => (
+              <option key={fm.id} value={fm.id}>
+                {fm.name} ({fm.location || 'No Location'})
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="grid grid-2 mb-16">
           <div className="form-group">
             <label className="form-label">Price per Day (₹) *</label>
@@ -273,8 +315,8 @@ const AdminVehicles = () => {
         </div>
         <div className="flex justify-end gap-8 mt-24">
           <button className="btn btn-ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleAdd} disabled={uploading}>
-            {uploading ? 'Uploading...' : 'Save Vehicle'}
+          <button className="btn btn-primary" onClick={handleSave} disabled={uploading}>
+            {uploading ? 'Uploading...' : (editingVehicle ? 'Update Vehicle' : 'Save Vehicle')}
           </button>
         </div>
       </Modal>
