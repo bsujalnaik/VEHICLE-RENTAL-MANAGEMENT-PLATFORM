@@ -1,0 +1,44 @@
+.vlp-page { padding-top: calc(var(--navbar-height) + 24px); padding-bottom: 60px; }
+
+.vlp-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.vlp-header h1 { margin-bottom: 4px; }
+.vlp-header p  { color: var(--gray-500); }
+
+.vlp-sort {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--gray-600);
+}
+
+.vlp-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.vehicles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 22px;
+}
+
+@media (max-width: 900px) {
+  .vlp-layout {
+    grid-template-columns: 1fr;
+  }
+  .vlp-sidebar .filter-panel {
+    position: static;
+  }
+}

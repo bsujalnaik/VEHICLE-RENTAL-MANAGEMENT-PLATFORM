@@ -1,0 +1,94 @@
+.rt-page {
+  background: var(--gray-50);
+}
+
+.rt-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.rt-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+}
+
+.rt-card-img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--gray-100);
+}
+
+.rt-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rt-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.rt-booking-id {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.rt-vehicle-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  margin-bottom: 20px;
+}
+
+.rt-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--gray-50);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.rt-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+.rt-lbl {
+  color: var(--gray-500);
+  font-weight: 500;
+}
+
+.rt-val {
+  color: var(--gray-800);
+  font-weight: 600;
+}
+
+.rt-status-msg {
+  font-size: 0.85rem;
+  color: var(--gray-600);
+  line-height: 1.5;
+  margin-top: 8px;
+  flex: 1;
+}
+
+.rt-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
