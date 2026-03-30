@@ -200,6 +200,17 @@ def delete_vehicle(vehicle_id):
     if not vehicle:
         return jsonify({"error": "Vehicle not found"}), 404
 
-    db.session.delete(vehicle)
-    db.session.commit()
-    return jsonify({"message": "Vehicle deleted"}), 200
+    from models import Booking, MaintenanceLog
+    try:
+        # Explicitly delete related records to avoid Foreign Key constraint violations
+        Booking.query.filter_by(vehicle_id=vehicle_id).delete()
+        MaintenanceLog.query.filter_by(vehicle_id=vehicle_id).delete()
+
+        db.session.delete(vehicle)
+        db.session.commit()
+        return jsonify({"message": "Vehicle deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Failed to delete vehicle due to server error"}), 500

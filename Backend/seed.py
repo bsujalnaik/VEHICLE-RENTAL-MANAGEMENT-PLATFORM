@@ -32,20 +32,6 @@ def seed_db():
             password_hash=bcrypt.generate_password_hash("admin123").decode('utf-8'),
             role="admin"
         )
-        fleet_north = User(
-            name="North Hub Manager",
-            email="north@vrmp.com",
-            password_hash=bcrypt.generate_password_hash("fleet123").decode('utf-8'),
-            role="fleet",
-            location="North Station"
-        )
-        fleet_south = User(
-            name="South Hub Manager",
-            email="south@vrmp.com",
-            password_hash=bcrypt.generate_password_hash("fleet123").decode('utf-8'),
-            role="fleet",
-            location="South Terminal"
-        )
         customer = User(
             name="Jane Customer",
             email="customer@vrmp.com",

@@ -7,6 +7,7 @@ import { api } from '../../services/api';
 const AdminVehicles = () => {
   const { vehicles, addVehicle, updateVehicle, deleteVehicle, addToast } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [editingVehicle, setEditingVehicle] = useState(null);
@@ -49,15 +50,19 @@ const AdminVehicles = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleDelete = async (id) => {
-    if (confirm('Are you sure you want to remove this vehicle?')) {
-      try {
-        await deleteVehicle(id);
-        addToast('Vehicle removed successfully', 'success');
-      } catch (err) {
-        addToast(err.message || 'Failed to delete vehicle', 'error');
-      }
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await deleteVehicle(deleteConfirmId);
+      addToast('Vehicle removed successfully', 'success');
+      setDeleteConfirmId(null);
+    } catch (err) {
+      addToast(err.message || 'Failed to delete vehicle', 'error');
     }
+  };
+
+  const handleDeleteClick = (id) => {
+    setDeleteConfirmId(id);
   };
 
   const handleEdit = (v) => {
@@ -175,7 +180,7 @@ const AdminVehicles = () => {
                   <td>
                     <div className="actions">
                       <button className="btn btn-ghost btn-sm" onClick={() => handleEdit(v)}>Edit</button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(v.id)}>Delete</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDeleteClick(v.id)}>Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -318,6 +323,19 @@ const AdminVehicles = () => {
           <button className="btn btn-primary" onClick={handleSave} disabled={uploading}>
             {uploading ? 'Uploading...' : (editingVehicle ? 'Update Vehicle' : 'Save Vehicle')}
           </button>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Confirm Deletion" size="sm">
+        <div className="flex-col gap-16">
+          <p className="text-gray-400">
+            Are you sure you want to delete this vehicle? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-12 mt-24">
+            <button className="btn btn-ghost" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+            <button className="btn btn-danger" onClick={executeDelete}>Delete Vehicle</button>
+          </div>
         </div>
       </Modal>
     </div>

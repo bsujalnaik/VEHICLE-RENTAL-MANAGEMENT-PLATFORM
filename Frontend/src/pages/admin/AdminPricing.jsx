@@ -5,17 +5,22 @@ import Modal from '../../components/Modal';
 const AdminPricing = () => {
   const { pricingRules, addPricingRule, togglePricingRule, deletePricingRule, addToast } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [form, setForm] = useState({ name: '', type: 'seasonal', value: 1.5, isActive: true });
 
-  const handleDelete = async (id) => {
-    if (confirm('Are you sure you want to delete this pricing rule?')) {
-      try {
-        await deletePricingRule(id);
-        addToast('Rule deleted', 'success');
-      } catch (err) {
-        addToast(err.message || 'Failed to delete rule', 'error');
-      }
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await deletePricingRule(deleteConfirmId);
+      addToast('Rule deleted', 'success');
+      setDeleteConfirmId(null);
+    } catch (err) {
+      addToast(err.message || 'Failed to delete rule', 'error');
     }
+  };
+
+  const handleDeleteClick = (id) => {
+    setDeleteConfirmId(id);
   };
 
   const handleToggle = async (id) => {
@@ -88,7 +93,7 @@ const AdminPricing = () => {
                       >
                         {r.isActive ? 'Disable' : 'Enable'}
                       </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(r.id)}>Delete</button>
+                      <button className="btn btn-danger btn-sm" onClick={() => handleDeleteClick(r.id)}>Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -103,9 +108,9 @@ const AdminPricing = () => {
         </div>
       </div>
 
-      <div className="grid grid-2 gap-24">
-        <div className="card p-24">
-          <h3 className="section-title text-lg mb-16">Base Pricing Config</h3>
+      <div className="grid grid-2" style={{ gap: '24px', marginTop: '48px' }}>
+        <div className="card" style={{ padding: '32px' }}>
+          <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', letterSpacing: '-0.02em', color: 'var(--color-primary)' }}>Base Pricing Config</h3>
           <p className="text-sm text-gray-500 mb-24">
             Adjust global base pricing parameters for the entire platform. This affects minimum daily prices.
           </p>
@@ -122,12 +127,12 @@ const AdminPricing = () => {
           </button>
         </div>
 
-        <div className="card p-24" style={{ background: 'var(--primary-50)', border: '1px solid var(--primary-100)' }}>
-          <h3 className="section-title text-lg mb-16 text-primary-dark">How Pricing Works</h3>
-          <p className="text-sm text-gray-700 leading-relaxed mb-16">
+        <div className="card" style={{ padding: '32px', background: 'transparent', border: '1px solid var(--color-border)' }}>
+          <h3 style={{ fontSize: '1.2rem', marginBottom: '16px', letterSpacing: '-0.02em' }}>How Pricing Works</h3>
+          <p className="text-sm text-gray-400 leading-relaxed mb-16">
             Pricing is calculated dynamically based on:
           </p>
-          <ul className="text-sm text-gray-700 font-semibold gap-8 flex-col" style={{ display: 'flex' }}>
+          <ul className="text-sm font-semibold" style={{ display: 'flex', flexDirection: 'column', gap: '12px', color: 'var(--color-text)' }}>
             <li>1. Base daily rate of the vehicle</li>
             <li>2. Duration entered by the user</li>
             <li>3. Any active multiplier rules</li>
@@ -165,6 +170,18 @@ const AdminPricing = () => {
         </div>
       </Modal>
 
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!deleteConfirmId} onClose={() => setDeleteConfirmId(null)} title="Confirm Deletion" size="sm">
+        <div className="flex-col gap-16">
+          <p className="text-gray-400">
+            Are you sure you want to delete this pricing rule? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-12 mt-24">
+            <button className="btn btn-ghost" onClick={() => setDeleteConfirmId(null)}>Cancel</button>
+            <button className="btn btn-danger" onClick={executeDelete}>Delete Rule</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

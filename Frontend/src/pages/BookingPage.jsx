@@ -151,14 +151,14 @@ const BookingPage = () => {
                 <div className="bk-vehicle-type">{vehicle.type} • {vehicle.transmission}</div>
                 
                 {vehicle.location && (
-                  <div style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--gray-700)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--color-text-soft)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '1.2rem' }}>📍</span>
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" style={{ color: 'var(--color-muted)', flexShrink: 0 }}><circle cx="7" cy="5.5" r="2.5"/><path d="M7 13C7 13 2 8.5 2 5.5a5 5 0 0110 0C12 8.5 7 13 7 13z"/></svg>
                       <strong>Pickup:</strong> {vehicle.location}
                     </div>
                     {vehicle.fleetManagerName && vehicle.fleetManagerName !== "Not Assigned" && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '1.2rem' }}>👤</span>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" style={{ color: 'var(--color-muted)', flexShrink: 0 }}><circle cx="7" cy="5" r="3"/><path d="M2 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>
                         <strong>Manager:</strong> {vehicle.fleetManagerName}
                       </div>
                     )}

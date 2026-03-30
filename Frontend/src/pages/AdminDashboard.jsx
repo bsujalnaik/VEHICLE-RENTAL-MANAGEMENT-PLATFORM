@@ -18,11 +18,17 @@ const AdminOverview = () => {
     api.getAdminReports().then(setReports).catch(console.error);
   }, []);
 
+
+  const IconCar = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="10" width="18" height="8" rx="2" ry="2" /><path d="M5 10l2-4h10l2 4" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></svg>;
+  const IconCalendar = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+  const IconChart = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+  const IconUser = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+
   const stats = reports ? [
-    { label: 'Total Vehicles', value: reports.total_vehicles, icon: <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=100&q=80" alt="V" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'blue' },
-    { label: 'Active Rentals', value: reports.active_rentals, icon: <img src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=100&q=80" alt="A" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'green' },
-    { label: 'Total Revenue', value: `₹${reports.total_revenue}`, icon: <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=100&q=80" alt="R" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'amber' },
-    { label: 'Total Users', value: reports.total_users, icon: <img src="https://images.unsplash.com/photo-1549416878-b9ca35c2d47b?w=100&q=80" alt="M" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />, color: 'red' },
+    { label: 'Total Vehicles', value: reports.total_vehicles, icon: <IconCar />, color: 'gold' },
+    { label: 'Active Rentals', value: reports.active_rentals, icon: <IconCalendar />, color: 'gold' },
+    { label: 'Total Revenue', value: `₹${reports.total_revenue}`, icon: <IconChart />, color: 'gold' },
+    { label: 'Total Users', value: reports.total_users, icon: <IconUser />, color: 'gold' },
   ] : [];
 
   return (
@@ -36,7 +42,9 @@ const AdminOverview = () => {
       <div className="grid grid-4 mb-32">
         {stats.map((s, idx) => (
           <div key={idx} className="stat-card">
-            <div className={`stat-icon ${s.color}`}>{s.icon}</div>
+            <div className={`stat-icon ${s.color}`}>
+              {s.icon}
+            </div>
             <div className="stat-info">
               <div className="stat-value">{s.value}</div>
               <div className="stat-label">{s.label}</div>

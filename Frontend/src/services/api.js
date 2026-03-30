@@ -30,9 +30,22 @@ export const api = {
     }
   },
 
-  async register({ name, email, password, role }) {
+  async register({ name, email, password, role, licenseFile }) {
     try {
-      const response = await apiClient.post('/auth/register', { name, email, password, role });
+      let payload = { name, email, password, role };
+      let headers = {};
+
+      if (role === 'admin' && licenseFile) {
+        payload = new FormData();
+        payload.append('name', name);
+        payload.append('email', email);
+        payload.append('password', password);
+        payload.append('role', role);
+        payload.append('license', licenseFile);
+        headers = { 'Content-Type': 'multipart/form-data' };
+      }
+
+      const response = await apiClient.post('/auth/register', payload, { headers });
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       return { user: response.data.user, token: response.data.access_token };
@@ -332,6 +345,15 @@ export const api = {
       return response.data.user;
     } catch (err) {
       throw new Error(err.response?.data?.error || 'Failed to update user');
+    }
+  },
+
+  async deleteUser(id) {
+    try {
+      await apiClient.delete(`/admin/users/${id}`);
+      return true;
+    } catch (err) {
+      throw new Error(err.response?.data?.error || 'Failed to delete user');
     }
   },
 

@@ -10,6 +10,10 @@ const FleetOverview = () => {
   // Filter active bookings (Booked, Paid, Picked Up) to show upcoming returns
   const activeBookings = bookings.filter(b => ['BOOKED', 'PAID', 'PICKED_UP', 'Booked', 'Paid', 'Picked Up'].includes(b.status));
 
+  const IconCar = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="10" width="18" height="8" rx="2" ry="2" /><path d="M5 10l2-4h10l2 4" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></svg>;
+  const IconKey = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M11.5 11.5L21 2v4l-3 3v3l-3 3"/></svg>;
+  const IconWrench = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>;
+
   return (
     <div className="fleet-overview">
       <div className="page-header mb-24">
@@ -19,8 +23,8 @@ const FleetOverview = () => {
 
       <div className="grid grid-3 mb-32">
         <div className="stat-card">
-          <div className="stat-icon blue">
-            <img src="https://images.unsplash.com/photo-1494913148647-353ae514b35e?w=100&q=80" alt="Fleet" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />
+          <div className="stat-icon gold">
+            <IconCar />
           </div>
           <div className="stat-info">
             <div className="stat-value">{fleet.length}</div>
@@ -28,8 +32,8 @@ const FleetOverview = () => {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon green">
-            <img src="https://images.unsplash.com/photo-1549416878-b9ca35c2d47b?w=100&q=80" alt="Available" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />
+          <div className="stat-icon gold">
+            <IconKey />
           </div>
           <div className="stat-info">
             <div className="stat-value">{availableCount}</div>
@@ -37,8 +41,8 @@ const FleetOverview = () => {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon amber">
-            <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=100&q=80" alt="Logs" style={{ width: '100%', height: '100%', borderRadius: '4px', objectFit: 'cover' }} />
+          <div className="stat-icon gold">
+            <IconWrench />
           </div>
           <div className="stat-info">
             <div className="stat-value">{pendingMaintenance}</div>

@@ -163,6 +163,33 @@ def update_user(user_id):
     db.session.commit()
     return jsonify({"message": "User updated", "user": user.to_dict()}), 200
 
+@admin_bp.route("/users/<int:user_id>", methods=["DELETE"])
+@jwt_required()
+@require_role("admin")
+def delete_user(user_id):
+    """Delete a user and cascade constraints cleanly."""
+    from flask_jwt_extended import get_jwt_identity
+    current_admin_id = int(get_jwt_identity())
+    
+    if user_id == current_admin_id:
+        return jsonify({"error": "You cannot delete your own active session"}), 400
+        
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    try:
+        if user.role == "fleet":
+            Vehicle.query.filter_by(fleet_manager_id=user.id).update({"fleet_manager_id": None})
+            
+        Booking.query.filter_by(user_id=user.id).delete()
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({"message": "User deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 # ────────────────────────────────────────────────
 #  Reports

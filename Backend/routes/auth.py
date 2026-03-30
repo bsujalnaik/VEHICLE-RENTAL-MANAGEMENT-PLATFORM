@@ -1,8 +1,11 @@
 """
 Auth routes — register, login, token refresh.
 """
-from flask import Blueprint, request, jsonify
+import os
+import uuid
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
+from werkzeug.utils import secure_filename
 from extensions import db, bcrypt
 from models import User
 
@@ -12,8 +15,13 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 # ── POST /auth/register ──────────────────────
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    """Register a new CUSTOMER user. Body: name, email, password."""
-    data = request.get_json()
+    """Register a new user (Customer or Admin). Supports multipart/form-data for license uploads."""
+    
+    # Handle both JSON and FormData depending on the selected role
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
 
     # Validation
     required = ["name", "email", "password"]
@@ -21,9 +29,33 @@ def register():
         if field not in data or not data[field]:
             return jsonify({"error": f"'{field}' is required"}), 400
 
-    # Public registration is only for customers
-    # Admin and Fleet accounts are pre-created by the system
-    role = "customer"
+    role = data.get("role", "customer").lower()
+    
+    # Restrict roles strictly to customer or admin for public registration
+    if role not in ["customer", "admin"]:
+        role = "customer"
+
+    license_url = None
+    if role == "admin":
+        if "license" not in request.files:
+            return jsonify({"error": "Admin registration requires a license document upload"}), 400
+        
+        file = request.files["license"]
+        if file.filename == "":
+            return jsonify({"error": "No license file provided"}), 400
+            
+        ext = file.filename.rsplit('.', 1)[-1].lower()
+        if ext not in ['pdf', 'png', 'jpg', 'jpeg', 'webp']:
+             return jsonify({"error": "License must be a PDF or Image"}), 400
+             
+        unique_name = f"license_{uuid.uuid4().hex}.{ext}"
+        upload_folder = current_app.config.get("UPLOAD_FOLDER", "static/uploads")
+        license_folder = os.path.join(upload_folder, "licenses")
+        os.makedirs(license_folder, exist_ok=True)
+        
+        filepath = os.path.join(license_folder, unique_name)
+        file.save(filepath)
+        license_url = f"/static/uploads/licenses/{unique_name}"
 
     if User.query.filter_by(email=data["email"]).first():
         return jsonify({"error": "Email already registered"}), 409
@@ -35,6 +67,7 @@ def register():
         email=data["email"],
         password_hash=pw_hash,
         role=role,
+        license_url=license_url
     )
     db.session.add(user)
     db.session.commit()

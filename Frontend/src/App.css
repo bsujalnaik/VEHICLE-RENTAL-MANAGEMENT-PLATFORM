@@ -1,9 +1,10 @@
+/* App.css — minimal. All design tokens are in index.css */
 .app-container {
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 .main-content {
-  flex: 1;
+  position: relative;
 }

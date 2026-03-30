@@ -12,6 +12,7 @@ const PaymentPage = () => {
   const [loading, setLoading] = useState(false);
   const [method, setMethod] = useState('card');
   const [card, setCard] = useState({ number: '', expiry: '', cvc: '', name: '' });
+  const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -49,14 +50,37 @@ const PaymentPage = () => {
       
       addBooking(completedBooking);
       sessionStorage.removeItem('pendingBooking');
-      addToast('Payment successful! Your booking is confirmed. ', 'success');
-      navigate('/rentals');
+      setIsSuccess(true);
     } catch (err) {
       addToast(err.message, 'error');
     } finally {
       setLoading(false);
     }
   };
+
+  if (isSuccess) {
+    return (
+      <div className="pay-page page-content flex-center" style={{ minHeight: '80vh' }}>
+        <div className="card text-center" style={{ maxWidth: 460, width: '100%', padding: '48px 32px' }}>
+          <div className="flex-center mb-24">
+            <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'rgba(34, 197, 94, 0.1)', display: 'flex', alignItems:'center', justifyContent:'center' }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+          </div>
+          <h2 className="mb-16" style={{ fontSize: '1.75rem' }}>Payment Successful</h2>
+          <p className="text-gray-400 mb-32">
+            Your payment for the <strong>{booking?.vehicleName}</strong> has been securely processed and your trip is locked in. 
+          </p>
+          <button className="btn btn-primary btn-full btn-lg" onClick={() => navigate('/rentals')}>
+            Go to My Rentals
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!booking) return null;
 

@@ -18,6 +18,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), default="customer")  # admin, fleet, customer
     location = db.Column(db.String(120), nullable=True)  # specifically for fleet managers
+    license_url = db.Column(db.String(256), nullable=True) # Specifically for admin registration
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     bookings = db.relationship("Booking", backref="user", lazy=True)
@@ -29,6 +30,7 @@ class User(db.Model):
             "email": self.email,
             "role": self.role,
             "location": self.location,
+            "license_url": self.license_url,
             "created_at": self.created_at.isoformat()
         }
 
