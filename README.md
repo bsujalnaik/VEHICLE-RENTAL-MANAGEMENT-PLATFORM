@@ -2,7 +2,7 @@
 
 DriveHub is a state-of-the-art Vehicle Rental Management Platform (VRMP) designed for luxury, efficiency, and a seamless user experience. Built with a modern tech stack and a premium design system, it caters to customers, fleet managers, and administrators alike.
 
-![DriveHub Banner](vrmp_api_flow_e2e.svg)
+<img src="vrmp_api_flow_e2e.svg" width="400">
 
 ## ✨ Key Features
 
